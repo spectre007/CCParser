@@ -5,6 +5,67 @@ class Struct(object):
     def __init__(self, **kwds): # keyword args define attribute names and values
         self.__dict__.update(**kwds)
         
+class ParseContainer(object):
+    """ Generic container object which keeps track of the parsed quantities
+    There should be one instance/parsed quantity. """
+    def __init__(self):
+        self.nversion = 0
+        #self.data = {}# dict or list?
+        self.data = []
+        self.lines = []
+    
+    def add(self,hook_line,new_obj):
+        #self.data[hook_line] = new_pvalue
+        self.data.append(new_obj)
+        self.lines.append(hook_line)
+        self.nversion += 1
+    
+    def get_first(self):# not very logical with dicts = unordered container
+        idx = self.lines.index(min(self.lines))#not needed if assuming ordered parsing (line by line)
+        #return self.data[0]
+        return self.data[idx]
+    
+    def get_last(self):
+        idx = self.lines.index(max(self.lines))#not needed if assuming ordered parsing (line by line)
+        # return self.data[-1]
+        return self.data[idx]
+    
+    def __len__(self):
+        assert len(self.data) == len(self.lines)
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        if abs(idx) > len(self.data)-1:
+            raise IndexError("ParseContainer: Index out of range")
+        return self.lines[idx], self.data[idx]
+        
+    def __setitem__(self, idx, value):
+        """ Setter method which expects value tuple (line, parsed_obj) """
+        self.lines[idx] = value[0]
+        self.data[idx] = value[1]
+        
+    def __delitem__(self, idx):
+        self.data.remove(idx)
+        self.lines.remove(idx)
+        
+    def __iter__(self):
+#        self.n = 0
+        return iter(self.data)
+        
+#    def __next__(self):
+#        if self.n <= self.nversion:
+#            return self.data[self.n]
+#        else:
+#            raise StopIteration
+    
+    def __contains__(self, line):
+        if type(line) == str:
+            line = int(line)
+        return True if line in self.lines else False
+    
+    
+        
+        
 class MolecularOrbitals(object):
     """ General molecular orbital class, which has more functionality than simple arrays """
     def __init__(self, o, v):
