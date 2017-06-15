@@ -1,4 +1,5 @@
 from .ParserData import Struct
+from .ParserData import ParseContainer
 #from .QChem import methods as m
 import importlib as il
 import os.path, inspect
@@ -17,11 +18,23 @@ class Parser(object):
 #        self.methods = m.SCF()
 #        print(self.methods.hooks.items())
         for i,line in enumerate(self.rawData):
-            match, key = self.canParse(line)
-            if match:
-                obj = self.get_quantity(i,key)
-                setattr(self.results, key, obj)
-                print("Line "+str(i), obj)
+            for mthd in self.methods:
+                match, key = self.canParse(line, mthd)
+                if match:
+                    q = self.get_quantity(i, key, mthd)
+                    print(key, mthd.map)
+                    if hasattr(self.results, mthd.map[key]):
+                        obj = getattr(self.results, mthd.map[key])
+#                        obj.add(i, self.get_quantity(i, key, mthd))
+                        obj.add(i, q)
+                    else:
+                        obj = ParseContainer()
+#                        obj.add(i, self.get_quantity(i, key, mthd))
+                        obj.add(i, q)
+                        setattr(self.results, mthd.map[key], obj)
+    #                setattr(self.results, key, obj)
+                    print("Line "+str(i), obj.get_last())
+                    
         
 #        self.pData = Struct()
 
@@ -35,28 +48,28 @@ class Parser(object):
         with open(f_input) as n:
             self.rawData.insert(0,n.readlines())
             
-    def canParse(self,line):
+    def canParse(self, line, mthd):
         """ Check if line is parsable """
         found = False
-        for mthd in self.methods:
+#        for mthd in self.methods:
 #        for key,value in self.methods.hooks.items():
-            for key,value in mthd.hooks.items():
-                if value in line:
+        for key,value in mthd.hooks.items():
+            if value in line:
+                found = True
+                return found, key
+            else:
+                match = re.search(value, line)
+                if match:
                     found = True
                     return found, key
-                else:
-                    match = re.search(value, line)
-                    if match:
-                        found = True
-                        return found, key
         if found == False:
             return found, None
 
             
-    def get_quantity(self, i, key):
+    def get_quantity(self, i, key, mthd):
         """ Call function of method class. This is the actual parsing. """
-        mvm = getattr(self.methods, key)
-        result = mvm(i,self.rawData)
+        method_func = getattr(mthd, key)# needs to be method not list of methods
+        result = method_func(i,self.rawData)
         return result
     
     def load_methods(self):
@@ -78,7 +91,7 @@ class Parser(object):
         m = il.import_module(m_package,package="CCParser")
         self.method_names = [k[0] for k in inspect.getmembers(m, inspect.isclass) if k[1].__module__ == "CCParser"+m_package]
         self.methods = [getattr(m,mname)() for mname in self.method_names]
-        print(self.methods)
+        #print(self.methods)
         
         
     

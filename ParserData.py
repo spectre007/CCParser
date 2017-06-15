@@ -6,7 +6,8 @@ class Struct(object):
         self.__dict__.update(**kwds)
         
 class ParseContainer(object):
-    """ Generic container object which keeps track of the parsed quantities
+    """ Generic container object which keeps track of the parsed quantities.
+    It allows to parse the same quantity several times.
     There should be one instance/parsed quantity. """
     def __init__(self):
         self.nversion = 0
