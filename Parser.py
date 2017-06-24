@@ -33,7 +33,7 @@ class Parser(object):
                         obj.add(i, q)
                         setattr(self.results, mthd.map[key], obj)
     #                setattr(self.results, key, obj)
-                    print("Line "+str(i), obj.get_last())
+                    #print("Line "+str(i), obj.get_last())
                     
         
 #        self.pData = Struct()

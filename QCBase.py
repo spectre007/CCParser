@@ -8,6 +8,10 @@ Created on Thu Jun 15 04:48:19 2017
 """
 
 class VarNames(object):
+    """ General mapping of member variable names to parsing function names.
+    After adding a new parsing function, add its result name here. It will
+    then be callable as for instance ccp.Parser.results.my_new_var[0] or
+    if it was parsed several times as ccp.Parser.results.my_new_var.get_last()"""
     # -- Energies --
     scf_energy = "scf_energy"
     mp_energy = "mp_energy"

@@ -15,13 +15,13 @@ from .QCBase import QCMethod, VarNames as V
 
 class SCF(QCMethod):
     def __init__(self):
-        super().__init__()
+        super().__init__()# necessary for every derived class of QCMethod
         self.hooks = {"orb_energies": "Orbital Energies (a.u.)"}
     
     def orb_energies(self, l_index, data):
         """ Parse Hartree-Fock molecular orbital energies """
         #self.map["mos"] = "orb_energies"
-        self.add_variable(self.func_name(), V.scf_energy)
+        self.add_variable(self.func_name(), V.mo_energies)
         if self.hooks["orb_energies"] in data[l_index]:
             n = 0
             while True:
@@ -42,12 +42,12 @@ class SCF(QCMethod):
             if rem3:
                 a_virt = re.findall("-?\d+\.\d+",rem3.group(0),re.M)
             alpha = MolecularOrbitals(a_occ,a_virt)
-            alpha.RVS(50)
+            #alpha.RVS(50)
             return alpha
 
 class ADC(QCMethod):
     def __init__(self):
-        super().__init__()
+        super().__init__()# necessary for every derived class of QCMethod
         #self.type = ["Excited States","Perturbation Theory"]
         self.hooks = {"scf_energy": "HF Summary",
                       "mp_energy": r"(RI-)?MP\([2-3]\)",

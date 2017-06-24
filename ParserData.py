@@ -38,7 +38,8 @@ class ParseContainer(object):
     def __getitem__(self, idx):
         if abs(idx) > len(self.data)-1:
             raise IndexError("ParseContainer: Index out of range")
-        return self.lines[idx], self.data[idx]
+        #return self.lines[idx], self.data[idx]
+        return self.data[idx]
         
     def __setitem__(self, idx, value):
         """ Setter method which expects value tuple (line, parsed_obj) """
