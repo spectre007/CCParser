@@ -18,5 +18,6 @@ each result is stored in a list-like container. Access the individual quantity e
 by index or use the `get_first()`/`get_last()` function, e.g.
 ```python
 res = QC.results
+print(res.scf_energy[2])
 print(res.scf_energy.get_last())
 ```
