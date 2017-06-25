@@ -22,7 +22,7 @@ class Parser(object):
                 match, key = self.canParse(line, mthd)
                 if match:
                     q = self.get_quantity(i, key, mthd)
-                    print(key, mthd.map)
+                    #print(key, mthd.map)
                     if hasattr(self.results, mthd.map[key]):
                         obj = getattr(self.results, mthd.map[key])
 #                        obj.add(i, self.get_quantity(i, key, mthd))

@@ -50,9 +50,10 @@ class ADC(QCMethod):
         super().__init__()# necessary for every derived class of QCMethod
         #self.type = ["Excited States","Perturbation Theory"]
         self.hooks = {"scf_energy": "HF Summary",
-                      "mp_energy": r"(RI-)?MP\([2-3]\)",
+                      "mp_energy": r"(RI-)?MP\([2-3]\) Summary",
                       "exc_energies": "Excitation energy:",
-                      "osc_strength": "Osc. strength:"}
+                      "osc_strength": "Osc. strength:",
+                      "amplitudes": "Important amplitudes:"}
 
     def exc_energies(self, l_index, data):
         """ Parse excitation energies in eV """
@@ -78,5 +79,21 @@ class ADC(QCMethod):
         self.add_variable(self.func_name(), V.mp_energy)
         match = re.search(self.hooks["mp_energy"], data[l_index])
         if match:
-            return match.group(0)#not finished yet
+            return float(data[l_index+3].split()[2])
+    
+    def amplitudes(self, l_index, data):
+        """ Parse occ -> virt amplitudes"""
+        self.add_variable(self.func_name(), V.amplitudes)
+        if self.hooks["amplitudes"] in data[l_index]:
+            idx = l_index+3
+            # TODO: needs to be replaced by better regex (also need orbital indices)
+            regex = r"(\d+) [^0-9]+ ((\d+) [^0-9]+)+ (-?\d+\.\d+)"
+            amplist = []
+            while "--------" not in data[idx]:
+                match = re.search(regex, data[idx])
+                if match:
+                    amplist.append(float(match.group(4)))
+                idx += 1
+        return amplist
+                
         

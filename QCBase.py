@@ -21,6 +21,7 @@ class VarNames(object):
     
     # -- Transition properties --
     osc_str = "osc_str"
+    amplitudes = "ampl"
     
     # -- Misc --
     pt_order = "pt_order"
