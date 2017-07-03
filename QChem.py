@@ -85,14 +85,29 @@ class ADC(QCMethod):
         """ Parse occ -> virt amplitudes"""
         self.add_variable(self.func_name(), V.amplitudes)
         if self.hooks["amplitudes"] in data[l_index]:
+            try:
+                # regex has the awesome captures feature
+                import regex
+                expr = r"(?:(?P<orb>\d+) [^0-9]+)+ (?P<ampl>-?\d+\.\d+)"
+                srch = regex.search
+                have_regex = True
+            except ImportError:
+                 # explicit expression for orbital transitions
+                 expr = r"(\d+) [^0-9]+ ((\d+) [^0-9]+)? (\d+) [^0-9]+ ((\d+) [^0-9]+)? (-?\d+\.\d+)"
+                 srch = re.search
+                 have_regex = False
+        
             idx = l_index+3
-            # TODO: needs to be replaced by better regex (also need orbital indices)
-            regex = r"(\d+) [^0-9]+ ((\d+) [^0-9]+)+ (-?\d+\.\d+)"
             amplist = []
             while "--------" not in data[idx]:
-                match = re.search(regex, data[idx])
+                match = srch(expr, data[idx])
                 if match:
-                    amplist.append(float(match.group(4)))
+                    if have_regex:
+                        orb = list(map(int, match.captures("orb")))
+                        amp = list(map(float, match.captures("ampl")))
+                        amplist.append(orb + amp)
+                    else:
+                        amplist.append([int(match.group(x)) for x in [1,3,4,6] if (match.group(x) != None)]+[float(match.group(7))])
                 idx += 1
         return amplist
                 
