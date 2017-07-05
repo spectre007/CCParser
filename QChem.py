@@ -16,7 +16,15 @@ from .QCBase import QCMethod, VarNames as V
 class SCF(QCMethod):
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
-        self.hooks = {"orb_energies": "Orbital Energies (a.u.)"}
+        # hooks as {function_name : hook_string}
+        self.hooks = {"scf_energy" : "SCF   energy in the final basis set",
+                      "orb_energies": "Orbital Energies (a.u.)"}
+    
+    def scf_energy(self, l_index, data):
+        """ Get Hartree-Fock energy [a.u.] from scfman """
+        self.add_variable(self.func_name(), V.scf_energy)
+        if self.hooks["scf_energy"] in data[l_index]:
+            return float(data[l_index].split()[-1])
     
     def orb_energies(self, l_index, data):
         """ Parse Hartree-Fock molecular orbital energies """
@@ -56,9 +64,8 @@ class ADC(QCMethod):
                       "amplitudes": "Important amplitudes:"}
 
     def exc_energies(self, l_index, data):
-        """ Parse excitation energies in eV """
+        """ Parse excitation energies [eV] """
         self.add_variable(self.func_name(), V.exc_energy_rel)
-#        self.map["exc_energy"] = "exc_energies"
         if self.hooks["exc_energies"] in data[l_index]:
             return float(data[l_index].split()[-2])
         
@@ -69,20 +76,20 @@ class ADC(QCMethod):
             return float(data[l_index].split()[-1])
         
     def scf_energy(self, l_index, data):
-        """ Parse SCF energy from adcman """
+        """ Parse SCF energy [a.u.] from adcman """
         self.add_variable(self.func_name(), V.scf_energy)
         if self.hooks["scf_energy"] in data[l_index]:
             return float(data[l_index+2].split()[-2])
         
     def mp_energy(self, l_index, data):
-        """ Parse MP() reference state energy from adcman """
+        """ Parse MP() reference state energy [a.u.] from adcman """
         self.add_variable(self.func_name(), V.mp_energy)
         match = re.search(self.hooks["mp_energy"], data[l_index])
         if match:
             return float(data[l_index+3].split()[2])
     
     def amplitudes(self, l_index, data):
-        """ Parse occ -> virt amplitudes"""
+        """ Parse occ -> virt amplitudes """
         self.add_variable(self.func_name(), V.amplitudes)
         if self.hooks["amplitudes"] in data[l_index]:
             try:
