@@ -11,7 +11,6 @@ class ParseContainer(object):
     There should be one instance/parsed quantity. """
     def __init__(self):
         self.nversion = 0
-        #self.data = {}# dict or list?
         self.data = []
         self.lines = []
     
@@ -21,7 +20,7 @@ class ParseContainer(object):
         self.lines.append(hook_line)
         self.nversion += 1
     
-    def get_first(self):# not very logical with dicts = unordered container
+    def get_first(self):
         idx = self.lines.index(min(self.lines))#not needed if assuming ordered parsing (line by line)
         #return self.data[0]
         return self.data[idx]

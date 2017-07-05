@@ -34,12 +34,12 @@ class QCMethod(object):
     """ Base class for Quantum Chemistry methods """
     def __init__(self):
         self.map = {}
-        self.var = {
-                "scf_energy" : 0,
-                "exc_energy" : 0,
-                "osc_str" : 0,
-                "mos" : 0
-                }
+#        self.var = {
+#                "scf_energy" : 0,
+#                "exc_energy" : 0,
+#                "osc_str" : 0,
+#                "mos" : 0
+#                }
         
     def func_name(self):
         """
