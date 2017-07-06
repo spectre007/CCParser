@@ -1,7 +1,8 @@
 from . import constants as c
+import numpy as np
 
 class Struct(object):
-    """ Generic container object """
+    """ Struct-like container object """
     def __init__(self, **kwds): # keyword args define attribute names and values
         self.__dict__.update(**kwds)
         
@@ -30,15 +31,20 @@ class ParseContainer(object):
         # return self.data[-1]
         return self.data[idx]
     
+    def get_data(self):
+        return self.data
+    
     def __len__(self):
         assert len(self.data) == len(self.lines)
         return len(self.data)
     
     def __getitem__(self, idx):
-        if abs(idx) > len(self.data)-1:
-            raise IndexError("ParseContainer: Index out of range")
-        #return self.lines[idx], self.data[idx]
-        return self.data[idx]
+        if isinstance(idx, slice):
+            return self.data[idx.start : idx.stop : idx.step]
+        else:
+            if idx >= len(self.data) or abs(idx) > len(self.data):
+                raise IndexError("ParseContainer: Index out of range")
+            return self.data[idx]
         
     def __setitem__(self, idx, value):
         """ Setter method which expects value tuple (line, parsed_obj) """
@@ -63,6 +69,13 @@ class ParseContainer(object):
         if type(line) == str:
             line = int(line)
         return True if line in self.lines else False
+    
+    def __str__(self):
+        s = "\n"
+        s+= "Line" + 3*" " + "Parsed Value\n"
+        for i in range(self.nversion):
+            s+= str(self.lines[i]) + 3*" " + str(self.data[i]) + "\n"
+        return s
     
     
         
@@ -112,6 +125,55 @@ class MolecularOrbitals(object):
             s = "Index: {0:3d}, Number of frozen virtuals: {1:3d}, ({2:.1%})".format(idx, freeze, part_of_v)
             print(s)
             
+class Amplitudes(object):
+    """ General container for amplitudes of one state for easier access to and export of amplitude data """
+    def __init__(self, occ, virt, v, factor=1.0):
+        self.occ = occ # list of lists, even if only single int in sublist
+        self.virt= virt
+        self.v = v
+        self.factor = factor
+        self.weights = list(map(lambda x: self.factor * x**2, self.v))
         
-#if __name__ == "__main__":
-#    test = Struct(keyy="value1")
+    @classmethod
+    def from_list(cls, allinone, factor=1.0):
+        """ Alternative constructor which expects single list.
+        Format: [[occ_i, occ_j,..., virt_a, virt_b,..., ampl], ...] """
+        occ, virt, v = [], [], []
+        for transition in allinone:
+            assert(len(transition) % 2 != 0)
+            n_mo = int((len(transition)-1)/2)
+            occ.append(transition[0:n_mo])# slices yield list, even if only one element
+            virt.append(transition[n_mo:-1])
+            v.append(transition[-1])# index yields float
+        return cls(occ, virt, v, factor)
+    
+#    def get_weights(self):
+#        """ Calculates weights with given factor if necessary and returns it """
+#        if len(self.weights) == 0:
+#            self.weights = list(map(lambda x: self.factor * x**2, self.v))
+#        return self.weights
+        
+    def to_dataframe(self, thresh=0.05):
+        """ Converts the amplitude data to handy pandas.DataFrame object """
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError("Module 'pandas' needed for 'Amplitudes.to_dataframe()' ")
+        # TODO: improve this clunky part
+        max_exc = max(list(map(len,self.occ)))
+        occ, virt = [], []
+        for i in range(len(self.occ)):
+            occ.append(self.occ[i] + [0]*(max_exc - len(self.occ[i])))
+            virt.append(self.virt[i] + [0]*(max_exc - len(self.virt[i])))
+        idx_o = list(map(lambda x: "occ_"+str(x), [n for n in range(1,max_exc+1)]))
+        idx_v = list(map(lambda x: "virt_"+str(x), [n for n in range(1,max_exc+1)]))
+        df = pd.concat([pd.DataFrame(occ, columns=idx_o),
+                        pd.DataFrame(virt, columns=idx_v),
+                        pd.Series(self.weights, name="weight")], axis=1)
+        return df[(df["weight"] > thresh)] # trim DataFrame based on awesome function
+    
+    def get_single_list(self):
+        """ Return single list of amplitude data in the format:
+            [[occ_i, occ_j,..., virt_a, virt_b,..., ampl], ...] """
+        return []
+            
