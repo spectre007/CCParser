@@ -9,7 +9,7 @@ import re
 #import numpy as np
 #import pandas as pd
 #import xarray as xr
-from .ParserData import MolecularOrbitals
+from .ParserData import MolecularOrbitals, Amplitudes
 from .QCBase import QCMethod, VarNames as V
 
 
@@ -116,6 +116,6 @@ class ADC(QCMethod):
                     else:
                         amplist.append([int(match.group(x)) for x in [1,3,4,6] if (match.group(x) != None)]+[float(match.group(7))])
                 idx += 1
-        return amplist
+        return Amplitudes.from_list(amplist, factor=2.0)
                 
         
