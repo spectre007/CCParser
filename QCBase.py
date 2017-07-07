@@ -26,6 +26,9 @@ class VarNames(object):
     # -- Misc --
     pt_order = "pt_order"
     
+    # -- Technical --
+    has_converged = "state_cnvgd"
+    
     
     
 

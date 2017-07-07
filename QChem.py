@@ -61,6 +61,7 @@ class ADC(QCMethod):
                       "mp_energy": r"(RI-)?MP\([2-3]\) Summary",
                       "exc_energies": "Excitation energy:",
                       "osc_strength": "Osc. strength:",
+                      "has_converged" : r"Excited state \d+ \(.*?\)\s+\[(.*?)\]",
                       "amplitudes": "Important amplitudes:"}
 
     def exc_energies(self, l_index, data):
@@ -87,7 +88,13 @@ class ADC(QCMethod):
         match = re.search(self.hooks["mp_energy"], data[l_index])
         if match:
             return float(data[l_index+3].split()[2])
-    
+    def has_converged(self, l_index, data):
+        """ Parse if state has converged. """
+        self.add_variable(self.func_name(), V.has_converged)
+        match = re.search(self.hooks["has_converged"], data[l_index])
+        if match:
+            return True if match.group(1) == "converged" else False
+
     def amplitudes(self, l_index, data):
         """ Parse occ -> virt amplitudes """
         self.add_variable(self.func_name(), V.amplitudes)
@@ -95,7 +102,7 @@ class ADC(QCMethod):
             try:
                 # regex has the awesome captures feature
                 import regex
-                expr = r"(?:(?P<orb>\d+) [^0-9]+)+ (?P<ampl>-?\d+\.\d+)"
+                expr = r"(?:(?P<orb>\d+) [^0-9]+)+ (?P<ampl>-?\d+\.\d+)" # FIXME: [^0-9] might be a problem if symmetry is on
                 srch = regex.search
                 have_regex = True
             except ImportError:
