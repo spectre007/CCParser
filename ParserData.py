@@ -133,6 +133,19 @@ class Amplitudes(object):
         self.v = v
         self.factor = factor
         self.weights = list(map(lambda x: self.factor * x**2, self.v))
+    
+    def __str__(self):
+        s = "Amplitudes: Weights > 5%\n"
+        for i in range(len(self.occ)):
+            if self.weights[i] > 0.05:
+                if len(self.occ[i]) == 1:
+                    s += "{0:>4} -> {1:>4} : {2:.1f}\n".format(self.occ[i][0],
+                          self.virt[i][0], 100*self.weights[i])
+                elif len(self.occ[i]) == 2:
+                    s += "{0:>4}, {1:>4} -> {2:>4}, {3:>4} : {4:.1f}\n".format(
+                            self.occ[i][0], self.occ[i][1], self.virt[i][0],
+                            self.virt[i][1], 100*self.weights[i])
+        return s
         
     @classmethod
     def from_list(cls, allinone, factor=1.0):
