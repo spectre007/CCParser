@@ -14,6 +14,7 @@ from .QCBase import QCMethod, VarNames as V
 
 
 class SCF(QCMethod):
+    """ Parse scfman related quantities """
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
         # hooks as {function_name : hook_string}
@@ -54,6 +55,7 @@ class SCF(QCMethod):
             return alpha
 
 class ADC(QCMethod):
+    """ Parse adcman related quantities """
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
         #self.type = ["Excited States","Perturbation Theory"]
@@ -124,5 +126,48 @@ class ADC(QCMethod):
                         amplist.append([int(match.group(x)) for x in [1,3,4,6] if (match.group(x) != None)]+[float(match.group(7))])
                 idx += 1
         return Amplitudes.from_list(amplist, factor=2.0)
-                
+    
+class FDE_ADC(QCMethod):
+    """ Parsing related to FDE-ADC implementation in Q-Chem """
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.hooks = {"fde_trust_first": "FDE control parameter",
+                      "fde_electrostatic": "rho_A <-> rho_B",
+                      "fde_trust": "lambda(FDE)",
+                      "fde_delta_lin": "Delta_Lin:"}
+#    def fde_Tfunc():
+#    def fde_XCfunc():
+        
+    def fde_trust_first(self, l_index, data):
+        """ Parse FDE trust parameter (before construction of embedding potential) [ppm] """
+        self.add_variable(self.func_name(), V.fde_trust_first)
+        if self.hooks["fde_trust_first"] in data[l_index]:
+            return float(data[l_index].split()[5])
+    
+    def fde_trust(self, l_index, data):
+        """ Parse FDE trust parameter [ppm] from final FDE output """
+        self.add_variable(self.func_name(), V.fde_trust)
+        if self.hooks["fde_trust"] in data[l_index]:
+            return float(data[l_index].split()[1])
+        
+    def fde_delta_lin(self, l_index, data):
+        """ Parse 1st order term [eV] of LinFDET approximation """
+        self.add_variable(self.func_name(), V.fde_delta_lin)
+        if self.hooks["fde_delta_lin"] in data[l_index]:
+            return float(data[l_index].split()[1])
+    
+    
+    def fde_electrostatic(self, l_index, data):
+        """ Parse state-specific electrostatic interactions [a.u.] from FDE summary
+        all at once. The order is rho_A<->rho_B, rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B
+        
+        :returns: A list containing electrostatic in the same order as in the output (see above) """
+        self.add_variable(self.func_name(), V.fde_electrostatic)
+        if self.hooks["fde_electrostatic"] in data[l_index]:
+            elstat = []
+            for i in range(4):
+                elstat.append(float(data[l_index+i].split()[3]))
+            return elstat
+    
+        
         

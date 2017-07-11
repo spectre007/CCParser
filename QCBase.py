@@ -29,6 +29,13 @@ class VarNames(object):
     # -- Technical --
     has_converged = "state_cnvgd"
     
+    # -- Frozen-Density Embedding
+    fde_trust_first = "fde_trust_init"
+    fde_trust = "fde_trust"
+    fde_delta_lin = "fde_delta_lin"
+    fde_electrostatic = "fde_elstat_int"
+    
+    
     
     
 
@@ -37,12 +44,6 @@ class QCMethod(object):
     """ Base class for Quantum Chemistry methods """
     def __init__(self):
         self.map = {}
-#        self.var = {
-#                "scf_energy" : 0,
-#                "exc_energy" : 0,
-#                "osc_str" : 0,
-#                "mos" : 0
-#                }
         
     def func_name(self):
         """
