@@ -3,7 +3,7 @@ from .QCBase import VarNames
 
 class Exporter(object):
     """ Export class which writes parsed data to a certain format"""
-    valid_formats = ["pdf", "xlsx", "txt", "csv"]
+    valid_formats = ["pdf", "xlsx", "txt", "csv", "dataframe"]
     
     def __init__(self, data=None):
         self.data = data
@@ -50,8 +50,7 @@ class Exporter(object):
         
         df = pd.concat([df1, amp_df], axis=1)
         
-        # EXPORT TO FILE
-        # TODO: write correct pd export
+        # EXPORT TO FILE or dataframe
         fout = fname + "." + fmt
         if fmt == "csv":
             df.to_csv(fout, encoding="utf-8")
@@ -59,6 +58,8 @@ class Exporter(object):
             writer = pd.ExcelWriter(fout)
             df.to_excel(writer, "Sheet1")
             writer.save()
+        elif fmt.lower() == ("dataframe"):
+            return df
         
             
             
