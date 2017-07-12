@@ -5,6 +5,7 @@ A general parsing framework for outputs of Quantum Chemistry codes.
 CCParser requires
 * Python 3.x
 * Python modules `re`, `inspect`, `os` and `importlib`
+* optional, but recommended: `pandas`
 
 ## Usage
 Create a CCParser object specifying the output and software:
