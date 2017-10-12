@@ -159,12 +159,6 @@ class Amplitudes(object):
             virt.append(transition[n_mo:-1])
             v.append(transition[-1])# index yields float
         return cls(occ, virt, v, factor)
-    
-#    def get_weights(self):
-#        """ Calculates weights with given factor if necessary and returns it """
-#        if len(self.weights) == 0:
-#            self.weights = list(map(lambda x: self.factor * x**2, self.v))
-#        return self.weights
         
     def to_dataframe(self, thresh=0.05):
         """ Converts the amplitude data to handy pandas.DataFrame object """
