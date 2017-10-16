@@ -153,7 +153,7 @@ amplitudes are supported!")
                      "sum_weight" : sum_weights,
                      "sum_red_weight" : sum_redweights}
             df = pd.DataFrame(d)
-            df.assign(diff=df["sum_weight"]-df["sum_red_weight"],
+            df = df.assign(diff=df["sum_weight"]-df["sum_red_weight"],
                       ratio=df["sum_red_weight"]/df["sum_weight"])
             if fmt == "print":
                 print("State | Sum(W) | Sum(P) | Sum(W) - Sum(P) | ratio P/W |\n",50*"-")
