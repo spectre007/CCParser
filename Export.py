@@ -150,8 +150,8 @@ amplitudes are supported!")
             # Export as
             fout = fname + "." + fmt
             d = {"State": [i+1 for i in range(n_states)],
-                     "Sum_weight" : sum_weights,
-                     "Sum_red_weight" : sum_redweights}
+                     "sum_weight" : sum_weights,
+                     "sum_red_weight" : sum_redweights}
             df = pd.DataFrame(d)
             df.assign(diff=df["sum_weight"]-df["sum_red_weight"],
                       ratio=df["sum_red_weight"]/df["sum_weight"])
