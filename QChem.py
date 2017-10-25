@@ -227,6 +227,7 @@ class ADC(QCMethod):
                       "osc_strength": "Osc. strength:",
                       "has_converged" : r"Excited state \d+ \(.*?\)\s+\[(.*?)\]",
                       "amplitudes": "Important amplitudes:",
+                      "total_dipole" : "Total dipole [Debye]",
                       "diff_dens_anl": "Exciton analysis of the difference density matrix"}
 
     def exc_energies(self, l_index, data):
@@ -295,6 +296,18 @@ class ADC(QCMethod):
                 idx += 1
         self.print_parsed(V.amplitudes, "ADC amplitudes")
         return Amplitudes.from_list(amplist, factor=2.0)
+
+    def total_dipole(self, l_index, data):
+        """ Parse total dipole moment [Debye] for HF, MP2 and ADC states
+        
+        Returns
+        -------
+        float
+            The total dipole moment [Debye]"""
+        self.add_variable(self.func_name(), V.total_dipole)
+        if self.hooks["total_dipole"] in data[l_index]: 
+            self.print_parsed(V.total_dipole, "Total dipole")
+            return float(data[l_index].split()[-1])
     
     def diff_dens_anl(self, l_index, data):
         """ Parse difference density matrix analysis block """
@@ -336,8 +349,7 @@ class FDE_ADC(QCMethod):
                       "fde_delta_lin": "Delta_Lin:",
                       "fde_timing": "FDE timings",
                       "fde_scf_vemb": "Integrated total embedding potential"}
-#    def fde_Tfunc():
-#    def fde_XCfunc():
+
         
     def fde_trust_first(self, l_index, data):
         """ Parse FDE trust parameter (before construction of embedding potential) [ppm] """
@@ -365,20 +377,26 @@ class FDE_ADC(QCMethod):
         """ Parse state-specific electrostatic interactions [a.u.] from FDE summary
         all at once. The order is rho_A<->rho_B, rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B
         
-        :returns: A list containing electrostatic in the same order as in the output (see above) """
+        Returns
+        -------
+        list
+            A list containing electrostatic in the same order as in the output (see above) """
         self.add_variable(self.func_name(), V.fde_electrostatic)
         if self.hooks["fde_electrostatic"] in data[l_index]:
             elstat = []
             for i in range(4):
                 elstat.append(float(data[l_index+i].split()[3]))
-            self.print_parsed(V.fde_electrostatics, "FDE electrostatic contributions [rho_A<->rho_B, rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]")
+            self.print_parsed(V.fde_electrostatic, "FDE electrostatic contributions [rho_A<->rho_B, rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]")
             return elstat
 
     def fde_timing(self, l_index, data):
         """ Parses FDE timings from the FDE summary. The order is FDE-ADC, RhoA_ref, RhoB, v_emb.
 
-        :returns: A list of tuples (CPU, wall) containing the times in seconds
-                  according to the above mentioned order. """
+        Returns
+        -------
+        list
+            A list of tuples (CPU, wall) containing the times in seconds
+            according to the above mentioned order. """
         self.add_variable(self.func_name(), V.fde_timing)
         if self.hooks["fde_timing"] in data[l_index]:
             times_list = [0 for i in range(4)]

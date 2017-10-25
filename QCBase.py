@@ -25,6 +25,7 @@ class VarNames(object):
     amplitudes = "ampl"
     diff_dens_anl = "diff_dens_anl"
     trans_dens_anl = "trans_dens_anl"
+    total_dipole = "tot_dip"
     
     # -- General --
     xyz_coordinates = "xyz"
