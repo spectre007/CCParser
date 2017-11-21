@@ -118,7 +118,9 @@ class General(QCMethod):
         self.hooks = {"xyz_coordinates" : "Standard Nuclear Orientation (Angstroms)",
                       "electrons" : r"There are \w+(?P<alpha>\d+) alpha and \w+(?P<beta>\d+) beta electrons",
                       "nuc_rep" : "Nuclear Repulsion Energy =",
-                      "n_basis" : r"There are (?P<shells>\d+) shells and (?P<bsf>\d+) basis functions"}
+                      "n_basis" : r"There are (?P<shells>\d+) shells and (?P<bsf>\d+) basis functions",
+                      "mulliken": "Ground-State Mulliken Net Atomic Charges",
+                      "chelpg": "Ground-State ChElPG Net Atomic Charges"}
     
     def xyz_coordinates(self, l_index, data):
         """ Get XYZ coordinates """
@@ -143,12 +145,42 @@ class General(QCMethod):
             return float(data[l_index].split()[-2])
     
     def n_basis(self, l_index, data):
-        """Parse number of basis functions """
+        """ Parse number of basis functions """
         self.add_variable(self.func_name(), V.n_bas)
         match = re.search(self.hooks["n_basis"], data[l_index])
         if match:
             self.print_parsed(V.n_bas, "number of basis functions")
             return int(match.group("bsf"))
+    
+    def mulliken(self, l_index, data):
+        """ Parse ground-state mulliken charges """
+        self.add_variable(self.func_name(), V.mulliken)
+        if self.hooks[self.func_name()] in data[l_index]:
+            chg, n = [], 0
+            while True:
+                if "-------" in data[l_index+4+n]:
+                    break
+                else:
+                    chg.append(data[l_index+4+n].split()[1:])
+                    n += 1
+            chg = [[x[0]]+[float(x[1])] for x in chg]
+            self.print_parsed(V.mulliken, "Ground-State Mulliken charges")
+            return chg
+        
+    def chelpg(self, l_index, data):
+        """ Parse ground-state ChElPG charges """
+        self.add_variable(self.func_name(), V.chelpg)
+        if self.hooks[self.func_name()] in data[l_index]:
+            chg, n = [], 0
+            while True:
+                if "-------" in data[l_index+4+n]:
+                    break
+                else:
+                    chg.append(data[l_index+4+n].split()[1:])
+                    n += 1
+            chg = [[x[0]]+[float(x[1])] for x in chg]
+            self.print_parsed(V.chelpg, "Ground-State ChElPG charges")
+            return chg
             
 
 class SCF(QCMethod):

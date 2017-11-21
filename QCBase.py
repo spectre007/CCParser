@@ -34,6 +34,8 @@ class VarNames(object):
     orthonorm_matrix = "X"
     mo_coefficients = "C"
     n_bas = "nbas"
+    mulliken = "mulliken"
+    chelpg = "chelpg"
     
     # -- Issues & Warnings --
     has_converged = "state_cnvgd"
