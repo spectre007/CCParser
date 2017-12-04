@@ -260,7 +260,8 @@ class ADC(QCMethod):
                       "has_converged" : r"Excited state \d+ \(.*?\)\s+\[(.*?)\]",
                       "amplitudes": "Important amplitudes:",
                       "total_dipole" : "Total dipole [Debye]",
-                      "diff_dens_anl": "Exciton analysis of the difference density matrix"}
+                      "diff_dens_anl": "Exciton analysis of the difference density matrix",
+                      "mulliken_adc": "Mulliken Population Analysis"}
 
     def exc_energies(self, l_index, data):
         """ Parse excitation energies [eV] """
@@ -369,6 +370,20 @@ class ADC(QCMethod):
 ##            d["elec_size"] = f[5]
 ##            d["elec_comp"] = f[6]
 #            return f
+    def mulliken_adc(self, l_index, data):
+        """ Parse MP(x) and ADC(x) mulliken charges """
+        self.add_variable(self.func_name(), V.mulliken)
+        if self.hooks[self.func_name()] in data[l_index]:
+            chg, n = [], 0
+            while True:
+                if "-------" in data[l_index+3+n]:
+                    break
+                else:
+                    chg.append(data[l_index+3+n].split()[1:])
+                    n += 1
+            chg = [[x[0]]+[float(x[1])] for x in chg]
+            self.print_parsed(V.mulliken, "MP(x)/ADC(x) Mulliken charges")
+            return chg
                 
     
 class FDE_ADC(QCMethod):
