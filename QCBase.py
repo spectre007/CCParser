@@ -33,6 +33,7 @@ class VarNames(object):
     overlap_matrix = "S"
     orthonorm_matrix = "X"
     mo_coefficients = "C"
+    alpha_dens_mat = "P_alpha"
     n_bas = "nbas"
     mulliken = "mulliken"
     chelpg = "chelpg"

@@ -35,14 +35,17 @@ def parse_symmetric_matrix(readlin, n, asmatrix=True):
     cols = 0
     index_line = n+1
     first_batch = True
-    while readlin[index_line].split()[0].isdigit():#loop over blocks
+    stop_signals = ["Gap", "=", "eV", "Convergence", "criterion"]
+    while not any(stop in readlin[index_line].split() for stop in stop_signals):#loop over blocks
         ncol = len(readlin[index_line].split())
         # adding rows scheme -> take line split as is
         j = 0
         if cols > 0:
             first_batch = False
         while True: #loop over lines in one block
-            if len(readlin[index_line+j+1].split()) != ncol+1 or not readlin[index_line+j+1].split()[0].isdigit():
+            if len(readlin[index_line+j+1].split()) != ncol+1 \
+            or not readlin[index_line+j+1].split()[0].isdigit() \
+            or any(stop in readlin[index_line+j+1].split() for stop in stop_signals):
                 break
             if first_batch:
                 matrix.append([])
@@ -192,6 +195,7 @@ class SCF(QCMethod):
                       "mo_energies": "Orbital Energies (a.u.)",
                       "overlap_matrix" : " Overlap Matrix",
                       "orthonorm_matrix" : " Orthonormalization Matrix",
+                      "alpha_density_matrix" : " Alpha Density Matrix",
                       "mo_coefficients_r" : "RESTRICTED (RHF) MOLECULAR ORBITAL COEFFICIENTS"}
     
     def scf_energy(self, l_index, data):
@@ -238,6 +242,12 @@ class SCF(QCMethod):
         """ Parse orthonormalization matrix X """
         self.add_variable(self.func_name(), V.orthonorm_matrix)
         self.print_parsed(V.orthonorm_matrix, "orthonormalization matrix")
+        return parse_symmetric_matrix(data, l_index)
+    
+    def alpha_density_matrix(self, l_index, data):
+        """ Parse alpha density matrix P_alpha """
+        self.add_variable(self.func_name(), V.alpha_dens_mat)
+        self.print_parsed(V.alpha_dens_mat, "SCF alpha density matrix")
         return parse_symmetric_matrix(data, l_index)
     
     def mo_coefficients_r(self, l_index, data):
