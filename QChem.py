@@ -36,8 +36,13 @@ def parse_symmetric_matrix(readlin, n, asmatrix=True):
     index_line = n+1
     first_batch = True
     stop_signals = ["Gap", "=", "eV", "Convergence", "criterion"]
-    while not any(stop in readlin[index_line].split() for stop in stop_signals):#loop over blocks
+    while True:#loop over blocks
         ncol = len(readlin[index_line].split())
+        
+        if len(readlin[index_line].split()) != ncol \
+        or any(stop in readlin[index_line].split() for stop in stop_signals) \
+        or not readlin[index_line].split()[0].isdigit():
+            break
         # adding rows scheme -> take line split as is
         j = 0
         if cols > 0:
@@ -51,8 +56,8 @@ def parse_symmetric_matrix(readlin, n, asmatrix=True):
                 matrix.append([])
             matrix[j] += list(map(float, readlin[index_line+j+1].split()[1:]))
             j += 1
-        index_line += j+1
-        cols += ncol
+        index_line += j+1#update index line
+        cols += ncol#update total number of columns processed
     if asmatrix: # return np.matrix object
         return np.asmatrix(matrix)
     else: # return list of lists
