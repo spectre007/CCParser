@@ -69,7 +69,7 @@ class Parser(object):
     def get_quantity(self, i, key, mthd):
         """ Call function of method class. This is the actual parsing. """
         method_func = getattr(mthd, key)# needs to be method not list of methods
-        result = method_func(i,self.rawData)
+        result = method_func(i, self.rawData)
         return result
     
     def load_methods(self):
@@ -84,6 +84,8 @@ class Parser(object):
             m_package = ".Molcas"
         elif tmp == "turbomole":
             m_package = ".Turbomole"
+        elif tmp == "psi":
+            m_package = ".Psi4"
         else:
             raise Exception("The specified software is misspelled or not implemented yet!")
         global m
