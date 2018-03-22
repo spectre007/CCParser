@@ -62,7 +62,8 @@ class Exporter(object):
         elif fmt.lower() == ("dataframe"):
             return df
         
-    def ReducedWeights(self, results, nbsfA, extern=None, fmt="print", fname="AmplAnl"):
+    def ReducedWeights(self, results, nbsfA, extern=None, fmt="print",
+                       fname="AmplAnl", silent=False):
         """ Calculate reduced weights based on fragment information.
         
         The reduced weight for a single excitation :math:`i \\rightarrow a` is defined as       
@@ -84,6 +85,8 @@ class Exporter(object):
             Output format. Available are "print", "dataframe", "xlsx" or "csv"
         fname : string
             Output file name (basename only).
+        silent : bool
+            Whether to ignore lengthy printouts.
 
         """
         # consistency
@@ -132,7 +135,8 @@ class Exporter(object):
             for i,a in enumerate(ampl):#state
                 for t in range(len(a.occ)):#transition
                     if max(a.virt[t]) > max_mo:
-                        print("State {0:>2d}: Omitting transition with weight \
+                        if not silent:
+                            print("State {0:>2d}: Omitting transition with weight \
 {1:.1%} due to missing MO coefficients.".format(i+1, a.weights[t]))
                         continue
                     if len(a.occ[t]) == 1:#single amplitudes
@@ -150,11 +154,11 @@ amplitudes are supported!")
             # Export as
             fout = fname + "." + fmt
             d = {"State": [i+1 for i in range(n_states)],
-                     "sum_weight" : sum_weights,
-                     "sum_red_weight" : sum_redweights}
+                 "sum_weight" : sum_weights,
+                 "sum_red_weight" : sum_redweights}
             df = pd.DataFrame(d)
             df = df.assign(diff=df["sum_weight"]-df["sum_red_weight"],
-                      ratio=df["sum_red_weight"]/df["sum_weight"])
+                           ratio=df["sum_red_weight"]/df["sum_weight"])
             if fmt == "print":
                 print("State | Sum(W) | Sum(P) | Sum(W) - Sum(P) | ratio P/W |\n",50*"-")
                 for i in range(n_states):
