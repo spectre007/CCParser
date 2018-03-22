@@ -80,7 +80,7 @@ class ParseContainer(object):
     
         
         
-class MolecularOrbitals(object):
+class MolecularOrbitals(object):# TODO: change name? "MolecularOrbitalEnergies"
     """ General molecular orbital class, which has more functionality than simple arrays """
     def __init__(self, o, v):
         self.occ = list(map(float,o))
@@ -183,4 +183,4 @@ class Amplitudes(object):
         """ Return single list of amplitude data in the format:
             [[occ_i, occ_j,..., virt_a, virt_b,..., ampl], ...] """
         return []
-            
+
