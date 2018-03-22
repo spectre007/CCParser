@@ -41,7 +41,7 @@ def parse_symmetric_matrix(readlin, n, asmatrix=True):
         
         if len(readlin[index_line].split()) != ncol \
         or any(stop in readlin[index_line].split() for stop in stop_signals) \
-        or not readlin[index_line].split()[0].isdigit():
+        or not readlin[index_line].split()[0].isdigit():#TODO: not strict enough!
             break
         # adding rows scheme -> take line split as is
         j = 0
@@ -405,26 +405,26 @@ class FDE_ADC(QCMethod):
     """ Parsing related to FDE-ADC implementation in Q-Chem """
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
-        self.hooks = {"fde_trust_first": "FDE control parameter",
+        self.hooks = {"fde_omega_ref": "FDE control parameter",
                       "fde_electrostatic": "rho_A <-> rho_B",
                       "fde_trust": "lambda(FDE)",
                       "fde_delta_lin": "Delta_Lin:",
                       "fde_timing": "FDE timings",
                       "fde_scf_vemb": "Integrated total embedding potential"}
-
-        
-    def fde_trust_first(self, l_index, data):
+    #TODO: implement parser for expansion_type
+    #TODO: implement new parsing for omega_ref, keep old one for legacy purpose
+    def fde_omega_ref(self, l_index, data):
         """ Parse FDE trust parameter (before construction of embedding potential) [ppm] """
-        self.add_variable(self.func_name(), V.fde_trust_first)
+        self.add_variable(self.func_name(), V.fde_omega_ref)
         if self.hooks["fde_trust_first"] in data[l_index]:
-            self.print_parsed(V.fde_trust_first, "a priori FDE overlap parameter Lambda")
+            self.print_parsed(V.fde_omega_ref, "a priori FDE overlap parameter Omega_ref")
             return float(data[l_index].split()[5])
     
     def fde_trust(self, l_index, data):
         """ Parse FDE trust parameter [ppm] from final FDE output """
         self.add_variable(self.func_name(), V.fde_trust)
         if self.hooks["fde_trust"] in data[l_index]:
-            self.print_parsed(V.fde_trust, "state specific FDE overlap parameter Lambda")
+            self.print_parsed(V.fde_trust, "state specific FDE overlap parameter Omega")
             return float(data[l_index].split()[1])
         
     def fde_delta_lin(self, l_index, data):
