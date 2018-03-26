@@ -15,7 +15,7 @@ class ParseContainer(object):
         self.data = []
         self.lines = []
     
-    def add(self,hook_line,new_obj):
+    def add(self, hook_line, new_obj):
         #self.data[hook_line] = new_pvalue
         self.data.append(new_obj)
         self.lines.append(hook_line)
