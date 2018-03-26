@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import sys
+import logging
 #import numpy as np
 """
 Created on Thu Jun 15 04:48:19 2017
@@ -50,6 +51,11 @@ class VarNames(object):
     fde_timing = "fde_times"
     fde_scf_vemb = "fde_scf_vemb"
     fde_expansion = "fde_expansion"
+    fde_method_rhoB = "fde_method_B"
+    fde_isA_imported = "fde_import_A"
+    fde_isB_imported = "fde_import_B"
+    fde_Tfunc = "fde_Tfunc"
+    fde_XCfunc = "fde_XCfunc"
     
     
     
@@ -81,20 +87,35 @@ class QCMethod(object):
             Short (!) description of the object that was parsed.
         """
         print("[results.{0:}] Parsed {1:}.".format(var_name, description))
-        
-#    def generate_map(self, func_name, var_name):
-#        self.var[var_name] = func_name
-        
-#    def gen_map(self):
-#        func_list = [func for func in dir(Foo) if callable(getattr(Foo, func)) and not func.startswith("__")]
-#        for func in func_list:
-#            self.map[func] = 0
-        
+
+class GenFormatter(logging.Formatter):
+    """ Generic Formatter for logging.Handler
+    
+    (see https://stackoverflow.com/questions/1343227/
+    can-pythons-logging-format-be-modified-depending-on-the-message-log-level)
+    """
+    default_formatter = logging.Formatter('%(levelname)s in %(name)s: %(message)s')
+
+    def __init__(self, formats):
+        """ formats is a dict { loglevel : logformat } """
+        self.formatters = {}
+        for loglevel in formats:
+            self.formatters[loglevel] = logging.Formatter(formats[loglevel])
+
+    def format(self, record):
+        formatter = self.formatters.get(record.levelno, self.default_formatter)
+        return formatter.format(record)
 # TODO: finish this
-class Printer(object):
-    """ Regulates output of the CompChemParser module """
-    def __init__(self):
-        pass
+#class Printer(object):
+#    """ Regulates output of the CompChemParser module """
+#    out_basename = "CCParser"
+#    out_extension = "log"
+#    
+#    def __init__(self):
+#        pass
+#    
+#    def write(self, string):
+#        pass
     
 class AtomicBasis(object):
     def __init__(self, xyz, expo, coef, name=""):

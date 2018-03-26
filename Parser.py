@@ -1,42 +1,47 @@
 from .ParserData import Struct
 from .ParserData import ParseContainer
-#from .QChem import methods as m
+from .QCBase import GenFormatter
 import importlib as il
 import os.path, inspect
 import re
+import logging
 
 class Parser(object):
-    def __init__(self, output, software=None):
+    def __init__(self, output, *, software=None, toConsole=True,
+                 toFile=False, logname="CCParser.log"):#cf. PEP-3102
         self.f_output = output
-        self.software = software
-        #self.output_folder 
+        self.logger = logging.getLogger("CCParser")
+        self.toConsole = toConsole
+        self.toFile = toFile
+        self.logname = logname
+        self.setupLogger()
+        
+        if software != None:
+            self.software = software
+        else:
+            raise ValueError("No software specified!")
+
         self.output_basename = os.path.basename(output)
         self.read_output()# read output to memory
         self.load_methods()# software dependent import
         
         self.results = Struct()# Set up container
-#        self.methods = m.SCF()
-#        print(self.methods.hooks.items())
+        self.logger.warning("CCParser starts...")
         for i,line in enumerate(self.rawData):
             for mthd in self.methods:
                 match, key = self.canParse(line, mthd)
                 if match:
                     q = self.get_quantity(i, key, mthd)
-                    #print(key, mthd.map)
                     if hasattr(self.results, mthd.map[key]):
                         obj = getattr(self.results, mthd.map[key])
-#                        obj.add(i, self.get_quantity(i, key, mthd))
                         obj.add(i, q)
                     else:
                         obj = ParseContainer()
-#                        obj.add(i, self.get_quantity(i, key, mthd))
                         obj.add(i, q)
                         setattr(self.results, mthd.map[key], obj)
-    #                setattr(self.results, key, obj)
-                    #print("Line "+str(i), obj.get_last())
-                    
-        
-#        self.pData = Struct()
+        self.logger.warning("CCParser has finished.")
+        self.loggerCleanUp()
+
 
     def read_output(self):
         """ Read in output file """
@@ -87,13 +92,46 @@ class Parser(object):
         elif tmp == "psi":
             m_package = ".Psi4"
         else:
-            raise Exception("The specified software is misspelled or not implemented yet!")
+            raise NameError("The specified software is misspelled or not implemented yet!")
         global m
 #        m = il.import_module(m_package+".methods",package="CCParser")
         m = il.import_module(m_package,package="CCParser")
-        self.method_names = [k[0] for k in inspect.getmembers(m, inspect.isclass) if k[1].__module__ == "CCParser"+m_package]
-        self.methods = [getattr(m,mname)() for mname in self.method_names]
-        #print(self.methods)
+        self.method_names = [k[0] for k in inspect.getmembers(m,
+                             inspect.isclass) if k[1].__module__ == "CCParser"+m_package]
+        self.methods = [getattr(m,mname)() for mname in self.method_names]#this also instantiates!!
+
+    def setupLogger(self):
+        # Set main logger's minimum output level
+        self.logger.setLevel(logging.INFO)
+        # Set up Formatter
+#        p_fmt = logging.Formatter("[results.%(Parsed)s] Parsed %(message)s")
+        # TODO: change number of loggers
+        # This is abusing the Formatter class a bit, but I wanted to avoid
+        # one Logger for every format, maybe I'll change this in the future.
+        p_fmt = GenFormatter(
+                {logging.INFO: "[results.%(Parsed)s] Parsed %(message)s",
+                 logging.WARNING: "==[%(asctime)s]== %(message)s",
+                 logging.ERROR: "%(message)s"})
+        # Set up Handlers
+        if self.toFile:
+            fh = logging.FileHandler(self.logname)
+            fh.setLevel(logging.INFO)
+            fh.setFormatter(p_fmt)
+            self.logger.addHandler(fh)
+        if self.toConsole:
+            ch = logging.StreamHandler()
+            ch.setLevel(logging.DEBUG)
+            ch.setFormatter(p_fmt)
+            self.logger.addHandler(ch)
+        # No output in case both booleans are False
+        if not any([self.toConsole, self.toFile]):
+            self.logger.setLevel(logging.CRITICAL)
+            
+    def loggerCleanUp(self):
+        """In order to avoid multiplying handlers. """
+        for i in range(len(self.logger.handlers)):
+            self.logger.handlers.pop()
+        
         
         
     
