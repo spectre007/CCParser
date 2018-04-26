@@ -28,6 +28,7 @@ class VarNames(object):
     diff_dens_anl = "diff_dens_anl"
     trans_dens_anl = "trans_dens_anl"
     total_dipole = "tot_dip"
+    dipole_moment = "dip_moment"
     
     # -- General --
     xyz_coordinates = "xyz"
@@ -50,6 +51,7 @@ class VarNames(object):
     fde_electrostatic = "fde_elstat_int"
     fde_timing = "fde_times"
     fde_scf_vemb = "fde_scf_vemb"
+    fde_scf_vemb_components = "fde_scf_comp"
     fde_expansion = "fde_expansion"
     fde_method_rhoB = "fde_method_B"
     fde_isA_imported = "fde_import_A"

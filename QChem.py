@@ -295,6 +295,7 @@ class ADC(QCMethod):
                       "has_converged" : r"Excited state \d+ \(.*?\)\s+\[(.*?)\]",
                       "amplitudes": "Important amplitudes:",
                       "total_dipole" : "Total dipole [Debye]",
+                      "dipole_moment" : r"Dip\. moment \[a\.u\.\]:\s+\[\s+(?P<x>-?\d+\.\d+),\s+(?P<y>-?\d+\.\d+),\s+(?P<z>-?\d+\.\d+)\]" ,
                       "diff_dens_anl": "Exciton analysis of the difference density matrix",
                       "mulliken_adc": "Mulliken Population Analysis"}
 
@@ -391,6 +392,23 @@ class ADC(QCMethod):
                          extra={"Parsed":V.total_dipole})
             return float(data[l_index].split()[-1])
     
+    def dipole_moment(self, l_index, data):
+        """ Parse dipole moment components in [a.u.] 
+        
+        Returns
+        -------
+        numpy.ndarray
+            Dipole moment in [a.u.]
+        """
+        self.add_variable(self.func_name(), V.dipole_moment)
+        match = re.search(self.hooks[self.func_name()], data[l_index])
+        if match:
+            mLogger.info("Dipole moment [a.u.]",
+                         extra={"Parsed":V.dipole_moment})
+            g = list(map(float,match.groups()))
+            return np.asarray(g)
+            
+    
     def diff_dens_anl(self, l_index, data):
         """ Parse difference density matrix analysis block """
         self.add_variable(self.func_name(), V.diff_dens_anl)
@@ -419,6 +437,7 @@ class ADC(QCMethod):
 ##            d["elec_size"] = f[5]
 ##            d["elec_comp"] = f[6]
 #            return f
+        
     def mulliken_adc(self, l_index, data):
         """ Parse MP(x) and ADC(x) mulliken charges """
         self.add_variable(self.func_name(), V.mulliken)
@@ -435,7 +454,6 @@ class ADC(QCMethod):
             mLogger.info("MP(x)/ADC(x) Mulliken charges",
                          extra={"Parsed":V.mulliken})
             return chg
-                
     
 class FDE_ADC(QCMethod):
     """ Parsing related to FDE-ADC implementation in Q-Chem """
@@ -446,6 +464,7 @@ class FDE_ADC(QCMethod):
                       "fde_trust": "lambda(FDE)",
                       "fde_delta_lin": "Delta_Lin:",
                       "fde_timing": "FDE timings",
+                      "fde_scf_vemb_components" : "Integrated electrostatic embedding",
                       "fde_scf_vemb": "Integrated total embedding potential",
                       "fde_expansion": "FDE-Expansion",
                       "fde_method_B": "Environment method",
@@ -523,6 +542,35 @@ rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostat
 #            self.print_parsed(V.fde_timing, "final FDE timings")
             mLogger.info("final FDE timings", extra={"Parsed":V.fde_timing})
             return times_list
+    
+    def fde_scf_vemb_components(self, l_index, data):
+        """ Parses the components of the embedding potential during the SCF in [a.u.]
+        
+        Parses either two or six components based on the selected print level.
+        
+        Returns
+        -------
+        list
+            List of energy components in the following order:
+                integrated electrostatic potential, integrated non-el. potential
+                (integrated coulomb potential, integrated nuclear potential
+                integrated non-add. XC potential, integrated non-add. kinetic potential)"""
+        self.add_variable(self.func_name(), V.fde_scf_vemb_components)
+        l = []
+        if self.hooks[self.func_name()] in data[l_index]:
+            mLogger.info("HF expectation value of the embedding potential components",
+                         extra={"Parsed":V.fde_scf_vemb_components})
+            l.append(float(data[l_index].split()[-1]))#elstat
+            if "nuclear potential" in data[l_index-1]:
+                l.append(float(data[l_index+3].split()[-1]))#non-elstat
+                l.append(float(data[l_index-2].split()[-1]))#coulomb
+                l.append(float(data[l_index-1].split()[-1]))#nuclear
+                l.append(float(data[l_index+1].split()[-1]))#nad XC
+                l.append(float(data[l_index+2].split()[-1]))#nad T
+            else:
+                l.append(float(data[l_index+1].split()[-1]))
+            
+            return l
     
     def fde_scf_vemb(self, l_index, data):
         """ Fetches HF expectation value of the embedding potential in atomic units.
