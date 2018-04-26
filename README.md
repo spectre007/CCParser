@@ -11,7 +11,7 @@ CCParser requires
 Create a CCParser object specifying the output and software:
 ```python
 import CCParser as ccp
-QC = ccp.Parser("./calculation.out", software="Q-Chem")
+QC = ccp.Parser("./calculation.out", software="Q-Chem", toConsole=True, toFile=False)
 ```
 Access the parsed quantities from the `.results` member variable. Since it's
 generally possible to parse the same quantity several times (e.g. geometry optimization),
