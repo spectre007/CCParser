@@ -461,6 +461,7 @@ class FDE_ADC(QCMethod):
         super().__init__()# necessary for every derived class of QCMethod
         self.hooks = {"fde_omega_ref": "FDE control parameter",
                       "fde_electrostatic": "rho_A <-> rho_B",
+                      "fde_non_electrostatic": "Non-Electrostatic Interactions",
                       "fde_trust": "lambda(FDE)",
                       "fde_delta_lin": "Delta_Lin:",
                       "fde_timing": "FDE timings",
@@ -471,7 +472,8 @@ class FDE_ADC(QCMethod):
                       "fde_import_A": "Importing Rho_A from file.",
                       "fde_import_B": "Importing Rho_B from file.",
                       "fde_tfunc": "Embedding Pot. T functional",
-                      "fde_xcfunc": "Embedding Pot. XC functional"}
+                      "fde_xcfunc": "Embedding Pot. XC functional",
+                      "fde_nonel_ref" : "LinFDET terms involving"}
 
     #TODO: implement new parsing for omega_ref, keep old one for legacy purpose
     def fde_omega_ref(self, l_index, data):
@@ -519,9 +521,33 @@ class FDE_ADC(QCMethod):
             mLogger.info("FDE electrostatic contributions [rho_A<->rho_B, \
 rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostatic})
             return elstat
-
+        
+    def fde_non_electrostatic(self, l_index, data):
+        """Parses non-electrostatic components of the embedding potential
+        for the ground and excited states.
+        
+        Returns
+        -------
+        list
+            List of the components in a.u. in the following order:
+            non-additive E_xc, non-additive T_s, integrated v_xc nad, integrated v_T nad
+            """
+        self.add_variable(self.func_name(), V.fde_non_electrostatic)
+        l=[]
+        if self.hooks[self.func_name()] in data[l_index]:
+            mLogger.info("non-electrostatic embedding potential components",
+                         extra={"Parsed":V.fde_non_electrostatic})
+            
+            l.append(float(data[l_index+2].split()[-2]))#non-additive E_xc
+            l.append(float(data[l_index+3].split()[-2]))#non-additive T_s
+            l.append(float(data[l_index+5].split()[-2]))#integrated v_xc nad
+            l.append(float(data[l_index+6].split()[-2]))#integrated v_T nad
+            
+            return l
+    
     def fde_timing(self, l_index, data):
-        """ Parses FDE timings from the FDE summary. The order is FDE-ADC, RhoA_ref, RhoB, v_emb.
+        """ Parses FDE timings from the FDE summary.
+        The order is FDE-ADC, RhoA_ref, RhoB, v_emb.
 
         Returns
         -------
@@ -569,7 +595,6 @@ rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostat
                 l.append(float(data[l_index+2].split()[-1]))#nad T
             else:
                 l.append(float(data[l_index+1].split()[-1]))
-            
             return l
     
     def fde_scf_vemb(self, l_index, data):
@@ -679,3 +704,22 @@ rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostat
             mLogger.info("exchange-correlation functional for v_emb",
                          extra={"Parsed":V.fde_XCfunc})
             return data[l_index].split()[-1]
+        
+    def fde_nonel_ref(self, l_index, data):
+        """Parses non additive properties of the reference density
+        
+        Returns
+        -------
+        list
+            List of [non-additive E_xc, non-additive T_s, integrated v_xc nad, integrated v_T nad]
+        """
+        self.add_variable(self.func_name(), V.fde_non_elstat_ref)
+        l=[]
+        if self.hooks[self.func_name()] in data[l_index]:
+            mLogger.info("reference density non additive properties",
+                         extra={"Parsed":V.fde_non_elstat_ref})
+            l.append(float(data[l_index+2].split()[-2]))#non-additive E_xc
+            l.append(float(data[l_index+3].split()[-2]))#non-additive T_s
+            l.append(float(data[l_index+5].split()[-2]))#integrated v_xc nad
+            l.append(float(data[l_index+6].split()[-2]))#integrated v_T nad
+        return l

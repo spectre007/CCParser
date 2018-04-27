@@ -48,7 +48,8 @@ class VarNames(object):
     fde_omega_ref = "fde_omega_ref"
     fde_trust = "fde_trust"
     fde_delta_lin = "fde_delta_lin"
-    fde_electrostatic = "fde_elstat_int"
+    fde_electrostatic = "fde_elstat"
+    fde_non_electrostatic = "fde_non_elstat"
     fde_timing = "fde_times"
     fde_scf_vemb = "fde_scf_vemb"
     fde_scf_vemb_components = "fde_scf_comp"
@@ -58,6 +59,7 @@ class VarNames(object):
     fde_isB_imported = "fde_import_B"
     fde_Tfunc = "fde_Tfunc"
     fde_XCfunc = "fde_XCfunc"
+    fde_non_elstat_ref = "fde_non_elstat_ref"
     
     
     
