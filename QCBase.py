@@ -21,6 +21,8 @@ class VarNames(object):
     exc_energy_rel = "exc_energy_rel"
     mo_energies = "mo_energies"
     nuc_repulsion = "nuc_rep"
+    sapt0_total = "sapt0_total"
+    sapt_components = "sapt_comp"
     
     # -- Excited States --
     osc_str = "osc_str"
