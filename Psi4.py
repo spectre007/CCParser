@@ -43,7 +43,7 @@ class SAPT(QCMethod):
                         break
                     descriptor = data[n+i+1].split()[0]
                     if descriptor in keys:
-                        l[keys.index(descriptor)] = data[n+i+1].split()[1]
+                        l[keys.index(descriptor)] = float(data[n+i+1].split()[1])
                 i += 1
         mLogger.info("SAPT components in [mEh]",
                      extra={"Parsed":V.sapt_components})
@@ -59,7 +59,7 @@ class SAPT(QCMethod):
         """
         self.add_variable(self.func_name(), V.sapt0_total)
         if self.hooks["sapt0_total"] in data[n]:
-            sapt0 = data[n].split()[2]
+            sapt0 = float(data[n].split()[2])
             mLogger.info("SAPT0 interaction energy in [mEh]",
                          extra={"Parsed":V.sapt0_total})
             return sapt0
