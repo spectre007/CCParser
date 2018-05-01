@@ -80,19 +80,22 @@ class Parser(object):
     def load_methods(self):
         """ Load correct module which contains parsing information
         based on which software was specified. """
-        tmp = re.sub('[^A-Za-z0-9]+', '', self.software.lower())
+        tmp = re.sub('[^A-Za-z]+', '', self.software.lower())
         if tmp == "qchem":
             m_package = ".QChem"
         elif tmp == "gaussian":
+            raise NotImplementedError("Gaussian parsingnot implemented yet!")
             m_package = ".Gaussian"
         elif tmp == "molcas":
+            raise NotImplementedError("Molcas parsing not implemented yet!")
             m_package = ".Molcas"
         elif tmp == "turbomole":
+            raise NotImplementedError("Turbomole parsing not implemented yet!")
             m_package = ".Turbomole"
         elif tmp == "psi":
             m_package = ".Psi4"
         else:
-            raise NameError("The specified software is misspelled or not implemented yet!")
+            raise ValueError("The specified software is misspelled or not implemented yet!")
         global m
 #        m = il.import_module(m_package+".methods",package="CCParser")
         m = il.import_module(m_package,package="CCParser")
