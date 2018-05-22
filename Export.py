@@ -22,8 +22,21 @@ class Exporter(object):
             df = pd.DataFrame(d)
         return df
     
-    def ExcitedStateSummary(self, results, fname="es_smry", fmt="csv"):
-        """ Exports energy related excited state quantities to file """
+    def ExcitedStateSummary(self, results, fname="es_smry", fmt="csv",
+                            ground_state=False):
+        """ Exports energy related excited state quantities to file 
+        
+        Parameters
+        ----------
+        results : CCParser.ParseContainer
+            Parsing container that holds parsed values.
+        fname : string
+            Filename prefix.
+        fmt : string
+            Output format ('csv', 'xlsx'/'xls' or 'df' for pandas.DataFrame).
+        ground_state : bool
+            Whether to include an empty line in the table for the ground state.
+        """
         if fmt not in Exporter.valid_formats:
             raise ValueError("File format '{0:}' not recognized or supported!".format(fmt))
         if False in getattr(results, VarNames.has_converged).data:
@@ -44,12 +57,17 @@ class Exporter(object):
             amp_df = pd.concat(pieces, keys=key, names=["State", "Row ID"])
             
         # prepare MultiIndex (there has to be a better way to do that...)
-        arrays = [[x for x in range(1,n_states+1)],[0 for x in range(n_states)]]
+        arrays = [[x for x in range(1, n_states+1)],
+                  [0 for x in range(n_states)]]
         tuples = list(zip(*arrays))# asterisk unpacks
         df1 = pd.DataFrame(d)
         df1.index = pd.MultiIndex.from_tuples(tuples, names=["State", "Row ID"])
         
         df = pd.concat([df1, amp_df], axis=1)
+        # add row to MultiIndex, see https://stackoverflow.com/q/24917700
+        if ground_state:
+            df.ix[(0,0),:] = np.nan
+            df.sort_index(level=0, inplace=True)
         
         # EXPORT TO FILE or dataframe
         fout = fname + "." + fmt
@@ -59,7 +77,7 @@ class Exporter(object):
             writer = pd.ExcelWriter(fout)
             df.to_excel(writer, "Sheet1")
             writer.save()
-        elif fmt.lower() == ("dataframe"):
+        elif fmt.lower() == ("dataframe" or "df"):
             return df
         
     def ReducedWeights(self, results, nbsfA, extern=None, fmt="print",
