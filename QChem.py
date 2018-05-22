@@ -292,7 +292,7 @@ class ADC(QCMethod):
                       "mp_energy": r"(RI-)?MP\([2-3]\) Summary",
                       "exc_energies": "Excitation energy:",
                       "osc_strength": "Osc. strength:",
-                      "has_converged" : r"Excited state \d+ \(.*?\)\s+\[(.*?)\]",
+                      "has_converged" : r"Excited state\s+\d+\s+\(.*?\)\s+\[(.*?)\]",
                       "amplitudes": "Important amplitudes:",
                       "total_dipole" : "Total dipole [Debye]",
                       "dipole_moment" : r"Dip\. moment \[a\.u\.\]:\s+\[\s+(?P<x>-?\d+\.\d+),\s+(?P<y>-?\d+\.\d+),\s+(?P<z>-?\d+\.\d+)\]" ,
