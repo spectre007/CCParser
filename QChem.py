@@ -460,6 +460,7 @@ class FDE_ADC(QCMethod):
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
         self.hooks = {"fde_omega_ref": "FDE control parameter",
+                      "fde_omega_I": "Omega(FDE)",
                       "fde_electrostatic": "rho_A <-> rho_B",
                       "fde_non_electrostatic": "Non-Electrostatic Interactions",
                       "fde_trust": "lambda(FDE)",
@@ -485,12 +486,21 @@ class FDE_ADC(QCMethod):
                          extra={"Parsed":V.fde_omega_ref})
             return float(data[l_index].split()[5])
     
+    def fde_omega_I(self, l_index, data):
+        """ Parse state-specific trust parameter Omega_I [ppm]
+            from final FDE output """
+        self.add_variable(self.func_name(), V.fde_omega_I)
+        if self.hooks[self.func_name()] in data[l_index]:
+            mLogger.info("state specific FDE overlap parameter Omega",
+                         extra={"Parsed":V.fde_omega_I})
+            return float(data[l_index].split()[1])
+    
     def fde_trust(self, l_index, data):
         """ Parse FDE trust parameter [ppm] from final FDE output """
         self.add_variable(self.func_name(), V.fde_trust)
         if self.hooks["fde_trust"] in data[l_index]:
 #            self.print_parsed(V.fde_trust, "state specific FDE overlap parameter Omega")
-            mLogger.info("state specific FDE overlap parameter Omega",
+            mLogger.info("state specific FDE overlap parameter Lambda",
                          extra={"Parsed":V.fde_trust})
             return float(data[l_index].split()[1])
         

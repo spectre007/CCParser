@@ -48,6 +48,7 @@ class VarNames(object):
     
     # -- Frozen-Density Embedding
     fde_omega_ref = "fde_omega_ref"
+    fde_omega_I = "fde_omega_I"
     fde_trust = "fde_trust"
     fde_delta_lin = "fde_delta_lin"
     fde_electrostatic = "fde_elstat"
