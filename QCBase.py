@@ -42,6 +42,7 @@ class VarNames(object):
     n_bas = "nbas"
     mulliken = "mulliken"
     chelpg = "chelpg"
+    has_finished = "has_finished"
     
     # -- Issues & Warnings --
     has_converged = "state_cnvgd"

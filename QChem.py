@@ -130,7 +130,8 @@ class General(QCMethod):
                       "nuc_rep" : "Nuclear Repulsion Energy =",
                       "n_basis" : r"There are (?P<shells>\d+) shells and (?P<bsf>\d+) basis functions",
                       "mulliken": "Ground-State Mulliken Net Atomic Charges",
-                      "chelpg": "Ground-State ChElPG Net Atomic Charges"}
+                      "chelpg": "Ground-State ChElPG Net Atomic Charges",
+                      "has_finished": "Thank you very much for using Q-Chem."}
     
     def xyz_coordinates(self, l_index, data):
         """ Get XYZ coordinates """
@@ -199,7 +200,15 @@ class General(QCMethod):
 #            self.print_parsed(V.chelpg, "Ground-State ChElPG charges")
             mLogger.info("Ground-State ChElPG charges", extra={"Parsed":V.chelpg})
             return chg
-            
+    
+    def has_finished(self, i, data):
+        """ Parse final statement that indicates if Q-Chem finished
+        without errors. """
+        self.add_variable(self.func_name(), V.has_finished)
+        mLogger.info("whether Q-Chem has finished successfully",
+                     extra={"Parsed":V.has_finished})
+        return True if self.hooks[self.func_name()] in data[i] else False
+       
 
 class SCF(QCMethod):
     """ Parse scfman related quantities """
