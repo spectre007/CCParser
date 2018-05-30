@@ -1,6 +1,6 @@
 from .ParserData import Struct
 from .ParserData import ParseContainer
-from .QCBase import GenFormatter
+from .QCBase import GenFormatter, VarNames as V
 import importlib as il
 import os.path, inspect
 import re
@@ -39,6 +39,12 @@ class Parser(object):
                         obj = ParseContainer()
                         obj.add(i, q)
                         setattr(self.results, mthd.map[key], obj)
+        if not hasattr(self.results, V.has_finished):
+            container = ParseContainer()
+            container.add(0, False)
+            setattr(self.results, V.has_finished, container)
+            self.logger.warning("Output indicates abnormal exit. Added "+
+                                "[results.has_finished] = False")
         self.logger.warning("CCParser has finished.")
         self.loggerCleanUp()
 
