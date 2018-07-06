@@ -194,8 +194,72 @@ amplitudes are supported!")
             else:
                 raise ValueError("Output format not supported!")
 
-            
+    def MO_Molden(self, results, atom_basis, fname="molecular_orbitals",
+                  tmp_5d=True):
+        """ Writes molecular orbitals to a molden file.
         
+        Expects molecular geometry in Angstrom.
+        More information on the molden format at
+        http://www.cmbi.ru.nl/molden/molden_format.html
         
+        Parameters
+        ----------
+        results : CCParser.ParseContainer
+            Container object which holds MO coefficients.
+        exponents : dict
+            Dictionary mapping GTO exponents/coefficients to atoms. Expected
+            format of dictionary entry is list of strings.
+        fname : string
+            Output file name.
+        """
+        from .QCBase import PeriodicTable
+        import re
         
+        C = results.C.get_last()
+        xyz = results.xyz.get_last()
+        en = results.mo_energies.get_last()
+        PeTa = PeriodicTable()
+        #TODO: Permutator needed in case of different formats (Molcas, Gaussian)
+        
+        with open(fname+".molden", "w") as out:
+            out.write("[Molden Format]\n")
+            # write XYZ
+            out.write("[Atoms] (Angs)\n")
+            for i,atom in enumerate(xyz):
+                num = PeTa.get_atomic_num(atom[0])
+                out.write("{0:>3}{1:7d}{2:5d}".format(atom[0], i+1, num))
+                out.write("".join("{0:16.8f}".format(c) for c in atom[1:])+"\n")
+            # write basis exponents
+            out.write("[GTO]\n")
+            for n in range(len(xyz)):
+                # atom sequence number, 0
+                out.write("{0:d}{1:5d}\n".format(n+1, 0))
+                symb = xyz[n][0].upper()
+                #a = atom.upper()
+                basis = atom_basis[symb]
+                for coeff in basis:
+                    # shell label, number of primitives, 1.00
+                    if re.search(r"[SDPF]", coeff[0]):
+                        out.write("{0:}{1:6d}{2:12.6f}\n".format(
+                                coeff[0], int(coeff[1]), float(coeff[2])))
+                    # exponent, contraction coefficient
+                    else:
+                        out.write("{0:18.8e}{1:18.8e}\n".format(
+                                float(coeff[0]), float(coeff[1])))
+                out.write("\n")
+            for imo in range(C.shape[0]):#assumes counting from MO 1 !!
+                out.write("[MO]\nSym=X\n")
+                if imo < en.n_occ:#occupied
+                    out.write("Ene={0:12.6f}\n".format(en.occ[imo]))
+                    out.write("Spin=alpha\n")
+                    out.write("Occup=1\n")
+                else:#virtual
+                    out.write("Ene={0:12.6f}\n".format(en.virt[imo]))
+                    out.write("Spin=alpha\n")
+                    out.write("Occup=0\n")
+                for i in range(C.shape[1]):
+                    out.write("{0:6d}{1: 22.12e}\n".format(i+1,C[imo, i]))
+            if tmp_5d:
+                out.write("[5D]\n")
+            print("MOs written to Molden file.")
         

@@ -131,7 +131,8 @@ class General(QCMethod):
                       "n_basis" : r"There are (?P<shells>\d+) shells and (?P<bsf>\d+) basis functions",
                       "mulliken": "Ground-State Mulliken Net Atomic Charges",
                       "chelpg": "Ground-State ChElPG Net Atomic Charges",
-                      "has_finished": "Thank you very much for using Q-Chem."}
+                      "has_finished": "Thank you very much for using Q-Chem.",
+                      "basis_name": "Requested basis set is"}
     
     def xyz_coordinates(self, l_index, data):
         """ Get XYZ coordinates """
@@ -206,8 +207,15 @@ class General(QCMethod):
         without errors. """
         self.add_variable(self.func_name(), V.has_finished)
         mLogger.info("whether Q-Chem has finished successfully",
-                     extra={"Parsed":V.has_finished})
+                     extra={"Parsed": V.has_finished})
         return True if self.hooks[self.func_name()] in data[i] else False
+    
+    def basis_name(self, i, data):
+        """ Parse name of basis set. """
+        self.add_variable(self.func_name(), V.basis_name)
+        mLogger.info("basis set name", extra={"Parsed": V.basis_name})
+        if self.hooks[self.func_name()] in data[i]:
+            return data[i].split()[-1]
        
 
 class SCF(QCMethod):
