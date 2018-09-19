@@ -31,6 +31,7 @@ class VarNames(object):
     trans_dens_anl = "trans_dens_anl"
     total_dipole = "tot_dip"
     dipole_moment = "dip_moment"
+    transition_dipole = "trans_dip"
     
     # -- General --
     xyz_coordinates = "xyz"
@@ -44,6 +45,7 @@ class VarNames(object):
     chelpg = "chelpg"
     has_finished = "has_finished"
     basis_name = "bas_name"
+    state_label = "state_label"
     
     # -- Issues & Warnings --
     has_converged = "state_cnvgd"

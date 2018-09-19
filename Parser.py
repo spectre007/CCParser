@@ -29,16 +29,18 @@ class Parser(object):
         self.logger.warning("CCParser starts...")
         for i,line in enumerate(self.rawData):
             for mthd in self.methods:
-                match, key = self.canParse(line, mthd)
+#                match, key = self.canParse(line, mthd)
+                match, keys = self.canParse(line, mthd)
                 if match:
-                    q = self.get_quantity(i, key, mthd)
-                    if hasattr(self.results, mthd.map[key]):
-                        obj = getattr(self.results, mthd.map[key])
-                        obj.add(i, q)
-                    else:
-                        obj = ParseContainer()
-                        obj.add(i, q)
-                        setattr(self.results, mthd.map[key], obj)
+                    for key in keys:# if not 1-to-1 mapping
+                        q = self.get_quantity(i, key, mthd)
+                        if hasattr(self.results, mthd.map[key]):
+                            obj = getattr(self.results, mthd.map[key])
+                            obj.add(i, q)
+                        else:
+                            obj = ParseContainer()
+                            obj.add(i, q)
+                            setattr(self.results, mthd.map[key], obj)
         if not hasattr(self.results, V.has_finished):
             container = ParseContainer()
             container.add(0, False)
@@ -62,19 +64,22 @@ class Parser(object):
     def canParse(self, line, mthd):
         """ Check if line is parsable """
         found = False
-#        for mthd in self.methods:
-#        for key,value in self.methods.hooks.items():
-        for key,value in mthd.hooks.items():
+        keys = []#for cases where there's no 1-to-1 mapping
+        for key, value in mthd.hooks.items():
             if value in line:
                 found = True
-                return found, key
+                keys.append(key)
+#                return found, key
             else:
                 match = re.search(value, line)
                 if match:
                     found = True
-                    return found, key
+                    keys.append(key)
+#                    return found, key
         if found == False:
             return found, None
+        else:
+            return found, keys
 
             
     def get_quantity(self, i, key, mthd):
