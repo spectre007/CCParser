@@ -95,7 +95,6 @@ class Parser(object):
         if tmp == "qchem":
             m_package = ".QChem"
         elif tmp == "gaussian":
-            raise NotImplementedError("Gaussian parsingnot implemented yet!")
             m_package = ".Gaussian"
         elif tmp == "molcas":
             raise NotImplementedError("Molcas parsing not implemented yet!")
