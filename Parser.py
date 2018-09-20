@@ -9,6 +9,22 @@ import logging
 class Parser(object):
     def __init__(self, output, *, software=None, toConsole=True,
                  toFile=False, logname="CCParser.log"):#cf. PEP-3102
+        """ Parser constructor.
+        
+        Parameters
+        ----------
+        output : string
+            Output filename.
+        software : string
+            Name of quantum chemistry software suite (default: None).
+        toConsole : bool
+            Whether to print log output to screen (default: True).
+        toFile : bool
+            Whether to write log output to file (default: False).
+        logname : string
+            Name of output log file (default: ``CCParser.log``).
+        
+        """
         self.f_output = output
         self.logger = logging.getLogger("CCParser")
         self.toConsole = toConsole
