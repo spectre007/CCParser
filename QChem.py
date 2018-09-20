@@ -574,27 +574,42 @@ rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostat
     
     def fde_timing(self, l_index, data):
         """ Parses FDE timings from the FDE summary.
-        The order is FDE-ADC, RhoA_ref, RhoB, v_emb.
+        The general order of appearance is FDE-method, RhoA_ref, RhoB, v_emb,
+        although RhoA_ref or RhoB might not be present due to import.
 
         Returns
         -------
-        list
-            A list of tuples (CPU, wall) containing the times in seconds
-            according to the above mentioned order. """
+        timings : dict
+            A dictionary mapping tuples (CPU, wall) containing the times in seconds
+            according to their label.
+        """
         self.add_variable(self.func_name(), V.fde_timing)
-        if self.hooks["fde_timing"] in data[l_index]:
-            times_list = [0 for i in range(4)]
-            order_dict = {"FDE-ADC": 0, "RhoA_ref generation": 1, "RhoB generation": 2, "v_emb": 3}
-            pattern = r"(?P<label>\b.+\b)\s+(?P<cpu>\d+\.\d+)\s+\(.+\)\s+(?P<wall>\d+\.\d+)"
-            for i in range(4):
-                match = re.search(pattern, data[l_index+4+i])
-                if match:
-                    lbl = match.group("label")
-                    times_list[order_dict[lbl]] = (float(match.group("cpu")),
-                        float(match.group("wall")))
+#        times_list = [0 for i in range(4)]
+#        order_dict = {"FDE-ADC": 0, "RhoA_ref generation": 1, "RhoB generation": 2, "v_emb": 3}
+        timings = {}
+        pattern = r"(?P<label>\b.+\b)\s+(?P<cpu>\d+\.\d+)\s+\(.+\)\s+(?P<wall>\d+\.\d+)"
+        i = 0
+        while True:
+            if "------" in data[l_index+4+i]:
+                break
+            match = re.search(pattern, data[l_index+4+i])
+            if match:
+                lbl = match.group("label")
+                timings[lbl] = (float(match.group("cpu")),
+                                float(match.group("wall")))
+            elif match == None:
+                break
+            i += 1
+#        for i in range(4):
+#            match = re.search(pattern, data[l_index+4+i])
+#            if match:
+#                lbl = match.group("label")
+#                times_list[order_dict[lbl]] = (float(match.group("cpu")),
+#                    float(match.group("wall")))
 #            self.print_parsed(V.fde_timing, "final FDE timings")
-            mLogger.info("final FDE timings", extra={"Parsed":V.fde_timing})
-            return times_list
+        mLogger.info("final FDE timings", extra={"Parsed":V.fde_timing})
+#        return times_list
+        return timings
     
     def fde_scf_vemb_components(self, l_index, data):
         """ Parses the components of the embedding potential during the SCF in [a.u.]
