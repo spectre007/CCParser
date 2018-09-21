@@ -17,6 +17,7 @@ class VarNames(object):
     # -- Energies --
     scf_energy = "scf_energy"
     mp_energy = "mp_energy"
+    mp_correction = "mp_correction"
     exc_energy_abs = "exc_energy_abs"
     exc_energy_rel = "exc_energy_rel"
     mo_energies = "mo_energies"

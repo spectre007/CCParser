@@ -233,10 +233,8 @@ class SCF(QCMethod):
     def scf_energy(self, l_index, data):
         """ Get Hartree-Fock energy [a.u.] from scfman """
         self.add_variable(self.func_name(), V.scf_energy)
-        if self.hooks["scf_energy"] in data[l_index]:
-#            self.print_parsed(V.scf_energy, "SCF energy")
-            mLogger.info("SCF energy", extra={"Parsed":V.scf_energy})
-            return float(data[l_index].split()[-1])
+        mLogger.info("SCF energy in [a.u.]", extra={"Parsed":V.scf_energy})
+        return float(data[l_index].split()[-1])
     
     def mo_energies(self, l_index, data):
         """ Parse Hartree-Fock molecular orbital energies """
@@ -307,6 +305,7 @@ class ADC(QCMethod):
         #self.type = ["Excited States","Perturbation Theory"]
         self.hooks = {"scf_energy": "HF Summary",
                       "mp_energy": r"(RI-)?MP\([2-3]\) Summary",
+                      "mp_correction": "MP energy contribution:",
                       "exc_energies": "Excitation energy:",
                       "osc_strength": "Osc. strength:",
                       "has_converged" : r"Excited state\s+\d+\s+\(.*?\)\s+\[(.*?)\]",
@@ -344,7 +343,7 @@ class ADC(QCMethod):
             return float(data[l_index+2].split()[-2])
         
     def mp_energy(self, l_index, data):
-        """ Parse MP() reference state energy [a.u.] from adcman """
+        """ Parse MP(x) reference state energy [a.u.] from adcman """
         self.add_variable(self.func_name(), V.mp_energy)
         match = re.search(self.hooks["mp_energy"], data[l_index])
         if match:
@@ -352,6 +351,14 @@ class ADC(QCMethod):
             mLogger.info("MP(x) energy in [a.u.] (adcman)",
                          extra={"Parsed":V.mp_energy})
             return float(data[l_index+3].split()[2])
+    
+    def mp_correction(self, i, data):
+        """Parse MP(x) energy contribution in [a.u.] from adcman."""
+        self.add_variable(self.func_name(), V.mp_correction)
+        mLogger.info("MP(x) correction in [a.u.] (adcman)",
+                         extra={"Parsed": V.mp_correction})
+        return float(data[i].split()[3])
+         
         
     def has_converged(self, l_index, data):
         """ Parse if state has converged. """
