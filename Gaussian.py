@@ -77,15 +77,15 @@ class TDDFT(QCMethod):
 #                      "oscillator_strength":("Ground to excited state"
 #                          " transition electric dipole moments"),
                       "exc_energy_rel": (r"Excited State\s+\d+:\s+(?P<Label>"
-                          r"[A-Za-z0-9_-]+)\s+(?P<ExcEV>\d+\.\d+) eV\s+"
+                          r"[A-Za-z0-9_?-]+)\s+(?P<ExcEV>\d+\.\d+) eV\s+"
                           r"(?P<ExcNM>\d+\.\d+) nm\s+f=(?P<Osc>\d+\.\d+)\s+"
                           r"<S\*\*2>=(?P<S2>\d+\.\d+)\s*"),
                       "state_label": (r"Excited State\s+\d+:\s+(?P<Label>"
-                          r"[A-Za-z0-9_-]+)\s+(?P<ExcEV>\d+\.\d+) eV\s+"
+                          r"[A-Za-z0-9_?-]+)\s+(?P<ExcEV>\d+\.\d+) eV\s+"
                           r"(?P<ExcNM>\d+\.\d+) nm\s+f=(?P<Osc>\d+\.\d+)\s+"
                           r"<S\*\*2>=(?P<S2>\d+\.\d+)\s*"),
                       "oscillator_strength": (r"Excited State\s+\d+:\s+(?P<Label>"
-                          r"[A-Za-z0-9_-]+)\s+(?P<ExcEV>\d+\.\d+) eV\s+"
+                          r"[A-Za-z0-9_?-]+)\s+(?P<ExcEV>\d+\.\d+) eV\s+"
                           r"(?P<ExcNM>\d+\.\d+) nm\s+f=(?P<Osc>\d+\.\d+)\s+"
                           r"<S\*\*2>=(?P<S2>\d+\.\d+)\s*"),
                       "amplitudes": r"Excited State\s+\d+:\s+"}
