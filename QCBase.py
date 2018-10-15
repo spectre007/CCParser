@@ -34,6 +34,9 @@ class VarNames(object):
     dipole_moment = "dip_moment"
     transition_dipole = "trans_dip"
     
+    # -- Vibrational Frequencies --
+    vib_freq = "freq"
+    
     # -- General --
     xyz_coordinates = "xyz"
     pt_order = "pt_order"
