@@ -144,4 +144,25 @@ class TDDFT(QCMethod):
                 break
         mLogger.info("TDDFT amplitudes", extra={"Parsed":V.amplitudes})
         return Amplitudes.from_list(amplist, factor=2.0)
+    
+class Freq(QCMethod):
+    """Parse frequency output."""
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        # hooks as {function_name : hook_string}
+        self.hooks = {"vibrational_freq" : "and normal coordinates:"}
+    
+    def vibrational_freq(self, i , data):
+        """Parse vibrational frequencies in [cm-1]."""
+        self.add_variable(self.func_name(), V.vib_freq)
+        n = 0
+        freqs = []
+        while "------" not in data[i+n]:
+            if "Frequencies --" in data[i+n]:
+                freqs += data[i+n].split()[2:]
+            n += 1
+        freqs = list(map(float, freqs))
+        mLogger.info("vibrational frequencies", extra={"Parsed":V.vib_freq})
+        return freqs
+        
             
