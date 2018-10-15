@@ -36,6 +36,7 @@ class VarNames(object):
     
     # -- Vibrational Frequencies --
     vib_freq = "freq"
+    vib_intensity = "IR_int"
     
     # -- General --
     xyz_coordinates = "xyz"

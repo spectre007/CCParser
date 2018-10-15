@@ -150,7 +150,8 @@ class Freq(QCMethod):
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
         # hooks as {function_name : hook_string}
-        self.hooks = {"vibrational_freq" : "and normal coordinates:"}
+        self.hooks = {"vibrational_freq" : "and normal coordinates:",
+                      "infrared_intensity" : "and normal coordinates:"}
     
     def vibrational_freq(self, i , data):
         """Parse vibrational frequencies in [cm-1]."""
@@ -162,7 +163,22 @@ class Freq(QCMethod):
                 freqs += data[i+n].split()[2:]
             n += 1
         freqs = list(map(float, freqs))
-        mLogger.info("vibrational frequencies", extra={"Parsed":V.vib_freq})
+        mLogger.info("vibrational frequencies in [cm-1]",
+                     extra={"Parsed":V.vib_freq})
         return freqs
+    
+    def infrared_intensity(self, i, data):
+        """Parse IR intensity in [km/mol]."""
+        self.add_variable(self.func_name(), V.vib_intensity)
+        n = 0
+        intensity = []
+        while "------" not in data[i+n]:
+            if "IR Inten    --" in data[i+n]:
+                intensity += data[i+n].split()[3:]
+            n += 1
+        intensity = list(map(float, intensity))
+        mLogger.info("IR intensities in [km/mol]",
+                     extra={"Parsed":V.vib_intensity})
+        return intensity
         
             
