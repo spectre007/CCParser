@@ -305,7 +305,8 @@ class ADC(QCMethod):
         #self.type = ["Excited States","Perturbation Theory"]
         self.hooks = {"scf_energy": "HF Summary",
                       "mp_energy": r"(RI-)?MP\([2-3]\) Summary",
-                      "mp_correction": "MP energy contribution:",
+                      "mp_correction": (r"(MP e|E)nergy contribution:\s+"
+                                        r"(?P<E>-\d+\.\d+) a.u."),
                       "exc_energies": "Excitation energy:",
                       "osc_strength": "Osc. strength:",
                       "has_converged" : r"Excited state\s+\d+\s+\(.*?\)\s+\[(.*?)\]",
@@ -355,9 +356,11 @@ class ADC(QCMethod):
     def mp_correction(self, i, data):
         """Parse MP(x) energy contribution in [a.u.] from adcman."""
         self.add_variable(self.func_name(), V.mp_correction)
-        mLogger.info("MP(x) correction in [a.u.] (adcman)",
-                         extra={"Parsed": V.mp_correction})
-        return float(data[i].split()[3])
+        match = re.search(self.hooks["mp_correction"], data[i])
+        if match:
+            mLogger.info("MP(x) correction in [a.u.] (adcman)",
+                             extra={"Parsed": V.mp_correction})
+            return float(match.group("E"))
          
         
     def has_converged(self, l_index, data):
