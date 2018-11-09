@@ -14,6 +14,22 @@ class ParseContainer(object):
         self.nversion = 0
         self.data = []
         self.lines = []
+        
+    @classmethod
+    def from_obj(cls, line, parsed_obj):
+        """Alternative constructor. Initialize directly with line and parsed
+           object.
+           
+        Parameters
+        ----------
+        line : int
+            line number
+        parsed_obj : any
+            parsed object
+        """
+        pc = cls()
+        pc.add(line, parsed_obj)
+        return pc
     
     def add(self, hook_line, new_obj):
         #self.data[hook_line] = new_pvalue
