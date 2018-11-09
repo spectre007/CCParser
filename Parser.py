@@ -162,5 +162,24 @@ class Parser(object):
             self.logger.handlers.pop()
         
         
+    def set_missing_keys(self):
+        """Set default values for keywords that have not been found."""
+        # use V.fde_expansion as an indicaotr whether or not an FDE calculation
+        # was requested
+#        if hasattr(self.results, V.fde_expansion):
+#            if not hasattr(self.results, V.fde_isA_imported):
+#                container = ParseContainer(0, False)
+#                setattr(self.results, V.fde_isA_imported, container)
+#                self.logger.info("whether FDET program imports rhoA_ref",
+#                     extra={"Parsed":V.fde_isA_imported})
+#            if not hasattr(self.results, V.fde_isB_imported):
+#                container = ParseContainer(0, False)
+#                setattr(self.results, V.fde_isB_imported, container)
+#                self.logger.info("whether FDET program imports rhoB",
+#                     extra={"Parsed":V.fde_isB_imported})
         
+        if not hasattr(self.results, V.has_finished):
+            container = ParseContainer(0, False)
+            setattr(self.results, V.has_finished, container)
+            self.logger.warning("Output indicates abnormal exit.")
     
