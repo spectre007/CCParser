@@ -486,103 +486,112 @@ class FDE_ADC(QCMethod):
     """ Parsing related to FDE-ADC implementation in Q-Chem """
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
-        self.hooks = {"fde_omega_ref": "FDE control parameter",
-                      "fde_omega_I": "Omega(FDE)",
-                      "fde_electrostatic": "rho_A <-> rho_B",
-                      "fde_non_electrostatic": "Non-Electrostatic Interactions",
-                      "fde_trust": "lambda(FDE)",
-                      "fde_delta_lin": "Delta_Lin:",
-                      "fde_timing": "FDE timings",
-                      "fde_scf_vemb_components" : "Integrated electrostatic embedding",
-                      "fde_scf_vemb": "Integrated total embedding potential",
-                      "fde_expansion": "FDE-Expansion",
-                      "fde_method_B": "Environment method",
-                      "fde_import_A": "Importing Rho_A from file.",
-                      "fde_import_B": "Importing Rho_B from file.",
-                      "fde_tfunc": "Embedding Pot. T functional",
-                      "fde_xcfunc": "Embedding Pot. XC functional",
-                      "fde_nonel_ref" : "LinFDET terms involving"}
+        self.hooks = {"omega_ref": "FDE control parameter",
+                      "omega_I": "Omega(FDE)",
+#                      "electrostatic": "rho_A <-> rho_B",
+#                      "non_electrostatic": "Non-Electrostatic Interactions",
+                      "trust": "lambda(FDE)",
+                      "delta_lin": "Delta_Lin:",
+                      "timing": "FDE timings",
+#                      "scf_vemb_components" : "Integrated electrostatic embedding",
+#                      "scf_vemb": "Integrated total embedding potential",
+                      "expansion": "FDE-Expansion",
+                      "method_Aref": "Method to generate rhoA_ref:",
+                      "method_B": "Method to generate rhoB:",
+                      "method_B_legacy": "Environment method",
+#                      "import_A": "to be imported from file 'Densmat_A.txt'",
+#                      "import_B": "to be imported from file 'Densmat_B.txt'",
+#                      "import_A_legacy": "Importing Rho_A from file.",
+#                      "import_B_legacy": "Importing Rho_B from file.",
+                      "tfunc": "Embedding Pot. T functional",
+                      "xcfunc": "Embedding Pot. XC functional",
+                      "xfunc" : "Embedding Pot. X functional",
+                      "cfunc" : "Embedding Pot. C functional",
+                      "nonel_ref" : "LinFDET terms involving",
+                      "subsysA"  : "Embedded System (A):",
+                      "subsysB"  : "Environment (B):",
+                      "E_xc_nad" : "non-additive E_xc:",
+                      "Ts_nad"   : "non-additive T_s:",
+                      "V_xc_nad_ref" : "# using -REFERENCE- potential",
+                      "V_xc_nad"     : "# using -UPDATED- potential",
+                      "V_t_nad_ref"  : "# using -REFERENCE- potential",
+                      "V_t_nad"      : "# using -UPDATED- potential",
+                      "J_int"        : "rho_A <-> rho_B:",
+                      "AnucB"        : "rho_A <-> Nuc_B:",
+                      "BnucA"        : "rho_B <-> Nuc_A:",
+                      "V_NA_NB"      : "Nuc_A <-> Nuc_B:"}
 
     #TODO: implement new parsing for omega_ref, keep old one for legacy purpose
-    def fde_omega_ref(self, l_index, data):
+    def omega_ref(self, i, data):
         """ Parse FDE trust parameter (before construction of embedding potential) [ppm] """
         self.add_variable(self.func_name(), V.fde_omega_ref)
-        if self.hooks["fde_omega_ref"] in data[l_index]:
-            #self.print_parsed(V.fde_omega_ref, "a priori FDE overlap parameter Omega_ref")
-            mLogger.info("a priori FDE overlap parameter Omega_ref",
-                         extra={"Parsed":V.fde_omega_ref})
-            return float(data[l_index].split()[5])
+        mLogger.info("a priori FDE overlap parameter Omega_ref",
+                     extra={"Parsed":V.fde_omega_ref})
+        return float(data[i].split()[5])
     
-    def fde_omega_I(self, l_index, data):
+    def omega_I(self, i, data):
         """ Parse state-specific trust parameter Omega_I [ppm]
             from final FDE output """
         self.add_variable(self.func_name(), V.fde_omega_I)
-        if self.hooks[self.func_name()] in data[l_index]:
-            mLogger.info("state specific FDE overlap parameter Omega",
-                         extra={"Parsed":V.fde_omega_I})
-            return float(data[l_index].split()[1])
+        mLogger.info("state specific FDE overlap parameter Omega",
+                     extra={"Parsed":V.fde_omega_I})
+        return float(data[i].split()[1])
     
-    def fde_trust(self, l_index, data):
+    def trust(self, i, data):
         """ Parse FDE trust parameter [ppm] from final FDE output """
         self.add_variable(self.func_name(), V.fde_trust)
-        if self.hooks["fde_trust"] in data[l_index]:
-#            self.print_parsed(V.fde_trust, "state specific FDE overlap parameter Omega")
-            mLogger.info("state specific FDE overlap parameter Lambda",
-                         extra={"Parsed":V.fde_trust})
-            return float(data[l_index].split()[1])
+        mLogger.info("state specific FDE overlap parameter Lambda",
+                     extra={"Parsed":V.fde_trust})
+        return float(data[i].split()[1])
         
-    def fde_delta_lin(self, l_index, data):
+    def delta_lin(self, i, data):
         """ Parse 1st order term [eV] of LinFDET approximation """
         self.add_variable(self.func_name(), V.fde_delta_lin)
-        if self.hooks["fde_delta_lin"] in data[l_index]:
-#            self.print_parsed(V.fde_delta_lin, "1st order term of linearized FDET")
-            mLogger.info("1st order term of linearized FDET",
-                         extra={"Parsed":V.fde_delta_lin})
-            return float(data[l_index].split()[1])
+        mLogger.info("1st order term of linearized FDET",
+                     extra={"Parsed":V.fde_delta_lin})
+        return float(data[i].split()[1])
     
     
-    def fde_electrostatic(self, l_index, data):
-        """ Parse state-specific electrostatic interactions [a.u.] from FDE summary
-        all at once. The order is rho_A<->rho_B, rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B
-        
-        Returns
-        -------
-        list
-            A list containing electrostatic in the same order as in the output (see above) """
-        self.add_variable(self.func_name(), V.fde_electrostatic)
-        if self.hooks["fde_electrostatic"] in data[l_index]:
-            elstat = []
-            for i in range(4):
-                elstat.append(float(data[l_index+i].split()[3]))
-#            self.print_parsed(V.fde_electrostatic, "FDE electrostatic contributions [rho_A<->rho_B, rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]")
-            mLogger.info("FDE electrostatic contributions [rho_A<->rho_B, \
-rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostatic})
-            return elstat
-        
-    def fde_non_electrostatic(self, l_index, data):
-        """Parses non-electrostatic components of the embedding potential
-        for the ground and excited states.
-        
-        Returns
-        -------
-        list
-            List of the components in a.u. in the following order:
-            non-additive E_xc, non-additive T_s, integrated v_xc nad, integrated v_T nad
-            """
-        self.add_variable(self.func_name(), V.fde_non_electrostatic)
-        l=[]
-        if self.hooks[self.func_name()] in data[l_index]:
-            mLogger.info("non-electrostatic embedding potential components",
-                         extra={"Parsed":V.fde_non_electrostatic})
-            
-            l.append(float(data[l_index+2].split()[-2]))#non-additive E_xc
-            l.append(float(data[l_index+3].split()[-2]))#non-additive T_s
-            l.append(float(data[l_index+5].split()[-2]))#integrated v_xc nad
-            l.append(float(data[l_index+6].split()[-2]))#integrated v_T nad
-            
-            return l
+#    def electrostatic(self, l_index, data):
+#        """ Parse state-specific electrostatic interactions [a.u.] from FDE summary
+#        all at once. The order is rho_A<->rho_B, rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B
+#        
+#        Returns
+#        -------
+#        list
+#            A list containing electrostatic in the same order as in the output (see above) """
+#        self.add_variable(self.func_name(), V.fde_electrostatic)
+#        elstat = []
+#        for i in range(4):
+#            elstat.append(float(data[l_index+i].split()[3]))
+##            self.print_parsed(V.fde_electrostatic, "FDE electrostatic contributions [rho_A<->rho_B, rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]")
+#        mLogger.info("FDE electrostatic contributions [rho_A<->rho_B, \
+#rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostatic})
+#        return elstat
+#        
+#    def non_electrostatic(self, i, data):
+#        """Parses non-electrostatic components of the embedding potential
+#        for the ground and excited states.
+#        
+#        Returns
+#        -------
+#        list
+#            List of the components in a.u. in the following order:
+#            non-additive E_xc, non-additive T_s, integrated v_xc nad, integrated v_T nad
+#            """
+#        self.add_variable(self.func_name(), V.fde_non_electrostatic)
+#        l=[]
+#        mLogger.info("non-electrostatic embedding potential components",
+#                     extra={"Parsed":V.fde_non_electrostatic})
+#        
+#        l.append(float(data[i+2].split()[-2]))#non-additive E_xc
+#        l.append(float(data[i+3].split()[-2]))#non-additive T_s
+#        l.append(float(data[i+5].split()[-2]))#integrated v_xc nad
+#        l.append(float(data[i+6].split()[-2]))#integrated v_T nad
+#        
+#        return l
     
-    def fde_timing(self, l_index, data):
+    def timing(self, l_index, data):
         """ Parses FDE timings from the FDE summary.
         The general order of appearance is FDE-method, RhoA_ref, RhoB, v_emb,
         although RhoA_ref or RhoB might not be present due to import.
@@ -594,10 +603,8 @@ rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostat
             according to their label.
         """
         self.add_variable(self.func_name(), V.fde_timing)
-#        times_list = [0 for i in range(4)]
-#        order_dict = {"FDE-ADC": 0, "RhoA_ref generation": 1, "RhoB generation": 2, "v_emb": 3}
         timings = {}
-        pattern = r"(?P<label>\b.+\b)\s+(?P<cpu>\d+\.\d+)\s+\(.+\)\s+(?P<wall>\d+\.\d+)"
+        pattern = r"(?P<label>\b.+\S+)\s+(?P<cpu>\d+\.\d+)\s+\(.+\)\s+(?P<wall>\d+\.\d+)"
         i = 0
         while True:
             if "------" in data[l_index+4+i]:
@@ -610,61 +617,51 @@ rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostat
             elif match == None:
                 break
             i += 1
-#        for i in range(4):
-#            match = re.search(pattern, data[l_index+4+i])
-#            if match:
-#                lbl = match.group("label")
-#                times_list[order_dict[lbl]] = (float(match.group("cpu")),
-#                    float(match.group("wall")))
-#            self.print_parsed(V.fde_timing, "final FDE timings")
+
         mLogger.info("final FDE timings", extra={"Parsed":V.fde_timing})
-#        return times_list
         return timings
     
-    def fde_scf_vemb_components(self, l_index, data):
-        """ Parses the components of the embedding potential during the SCF in [a.u.]
-        
-        Parses either two or six components based on the selected print level.
-        
-        Returns
-        -------
-        list
-            List of energy components in the following order:
-                integrated electrostatic potential, integrated non-el. potential
-                (integrated coulomb potential, integrated nuclear potential
-                integrated non-add. XC potential, integrated non-add. kinetic potential)"""
-        self.add_variable(self.func_name(), V.fde_scf_vemb_components)
-        l = []
-        if self.hooks[self.func_name()] in data[l_index]:
-            mLogger.info("HF expectation value of the embedding potential components",
-                         extra={"Parsed":V.fde_scf_vemb_components})
-            l.append(float(data[l_index].split()[-1]))#elstat
-            if "nuclear potential" in data[l_index-1]:
-                l.append(float(data[l_index+3].split()[-1]))#non-elstat
-                l.append(float(data[l_index-2].split()[-1]))#coulomb
-                l.append(float(data[l_index-1].split()[-1]))#nuclear
-                l.append(float(data[l_index+1].split()[-1]))#nad XC
-                l.append(float(data[l_index+2].split()[-1]))#nad T
-            else:
-                l.append(float(data[l_index+1].split()[-1]))
-            return l
+#    def scf_vemb_components(self, l_index, data):
+#        """ Parses the components of the embedding potential during the SCF in [a.u.]
+#        
+#        Parses either two or six components based on the selected print level.
+#        
+#        Returns
+#        -------
+#        list
+#            List of energy components in the following order:
+#                integrated electrostatic potential, integrated non-el. potential
+#                (integrated coulomb potential, integrated nuclear potential
+#                integrated non-add. XC potential, integrated non-add. kinetic potential)"""
+#        self.add_variable(self.func_name(), V.fde_scf_vemb_components)
+#        l = []
+#        mLogger.info("HF expectation value of the embedding potential components",
+#                     extra={"Parsed":V.fde_scf_vemb_components})
+#        l.append(float(data[l_index].split()[-1]))#elstat
+#        if "nuclear potential" in data[l_index-1]:
+#            l.append(float(data[l_index+3].split()[-1]))#non-elstat
+#            l.append(float(data[l_index-2].split()[-1]))#coulomb
+#            l.append(float(data[l_index-1].split()[-1]))#nuclear
+#            l.append(float(data[l_index+1].split()[-1]))#nad XC
+#            l.append(float(data[l_index+2].split()[-1]))#nad T
+#        else:
+#            l.append(float(data[l_index+1].split()[-1]))
+#        return l
+#    
+#    def scf_vemb(self, l_index, data):
+#        """ Fetches HF expectation value of the embedding potential in [a.u.].
+#        
+#        Returns
+#        -------
+#        float
+#            Energy in a.u.
+#        """
+#        self.add_variable(self.func_name(), V.fde_scf_vemb)
+#        mLogger.info("HF expectation value of the embedding potential",
+#                     extra={"Parsed":V.fde_scf_vemb})
+#        return float(data[l_index].split()[4])
     
-    def fde_scf_vemb(self, l_index, data):
-        """ Fetches HF expectation value of the embedding potential in atomic units.
-        
-        Returns
-        -------
-        float
-            Energy in a.u.
-        """
-        self.add_variable(self.func_name(), V.fde_scf_vemb)
-        if self.hooks["fde_scf_vemb"] in data[l_index]:
-#            self.print_parsed(V.fde_scf_vemb, "HF expectation value of the embedding potential")
-            mLogger.info("HF expectation value of the embedding potential",
-                         extra={"Parsed":V.fde_scf_vemb})
-            return float(data[l_index].split()[4])
-    
-    def fde_expansion(self, l_index, data):
+    def expansion(self, l_index, data):
         """ Parses FDE-Expansion type [ME, SE, RADM]
         
         Returns
@@ -673,13 +670,31 @@ rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostat
             Expansion type
         """
         self.add_variable(self.func_name(), V.fde_expansion)
-        if self.hooks["fde_expansion"] in data[l_index]:
-#            self.print_parsed(V.fde_expansion, "FDET Basis set expansion")
-            mLogger.info("FDET Basis set expansion",
-                         extra={"Parsed":V.fde_expansion})
-            return data[l_index].split()[1]
+        mLogger.info("FDET Basis set expansion",
+                     extra={"Parsed":V.fde_expansion})
+        return data[l_index].split()[1]
     
-    def fde_method_B(self, l_index, data):
+    def method_Aref(self, i, data):
+        """ Parses which method is used to generate rhoAref (the density used
+        to construct the initial embedding potential)
+        
+        So far the choices are "HF", "DFT / Func_Name" or "imported"
+        
+        Returns
+        -------
+        string
+            RhoAref method
+        """
+        self.add_variable(self.func_name(), V.fde_method_rhoA)
+        mLogger.info("FDET Method for rhoAref",
+                     extra={"Parsed":V.fde_method_rhoA})
+        s = data[i].split()
+        if s[-1] == "'Densmat_A.txt')":
+            return "imported"
+        else:
+            return s[-1]
+        
+    def method_B(self, i, data):
         """ Parses method type for rhoB. 
         
         So far the choices are "HF", "DFT / Func_Name" or "imported"
@@ -690,42 +705,85 @@ rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostat
             RhoB method
         """
         self.add_variable(self.func_name(), V.fde_method_rhoB)
-        if self.hooks["fde_method_B"] in data[l_index]:
-#            self.print_parsed(V.fde_method_rhoB, "FDET Method for rhoB")
-            mLogger.info("FDET Method for rhoB", extra={"Parsed":V.fde_method_rhoB})
-            return data[l_index].split()[-1]
+        mLogger.info("FDET Method for rhoB",
+                     extra={"Parsed":V.fde_method_rhoB})
+        s = data[i].split()
+        if s[-1] == "'Densmat_B.txt')":
+            return "imported"
+        else:
+            return s[-1]
     
-    def fde_import_A(self, l_index, data):
-        """ Determine whether Rho_A is imported or not.
+    def method_B_legacy(self, i, data):
+        """ Parses method type for rhoB. 
+        
+        So far the choices are "HF", "DFT / Func_Name" or "imported"
         
         Returns
         -------
-        bool
-            Is Rho_A imported?
+        string
+            RhoB method
         """
-        self.add_variable(self.func_name(), V.fde_isA_imported)
-        if self.hooks["fde_import_A"] in data[l_index]:
-#            self.print_parsed(V.fde_isA_imported, "boolean for density import of Rho_A")
-            mLogger.info("boolean for density import of Rho_A",
-                         extra={"Parsed":V.fde_isA_imported})
-            return True
-    
-    def fde_import_B(self, l_index, data):
-        """ Determine whether Rho_B is imported or not.
+        self.add_variable(self.func_name(), V.fde_method_rhoB)
+        mLogger.info("FDET Method for rhoB", extra={"Parsed":V.fde_method_rhoB})
+        return data[i].split()[-1]
         
-        Returns
-        -------
-        bool
-            Is Rho_B imported?
-        """
-        self.add_variable(self.func_name(), V.fde_isB_imported)
-        if self.hooks["fde_import_B"] in data[l_index]:
-#            self.print_parsed(V.fde_isB_imported, "boolean for density import of Rho_B")
-            mLogger.info("boolean for density import of Rho_B",
-                         extra={"Parsed":V.fde_isB_imported})
-            return True
+#    def import_A(self, i, data):
+#        """Determine whether Rho_A is imported or not.
+#        
+#        Returns
+#        -------
+#        bool
+#            Is Rho_A imported?
+#        """
+#        self.add_variable(self.func_name(), V.fde_isA_imported)
+#        mLogger.info("whether FDET program imports rhoA_ref",
+#                     extra={"Parsed":V.fde_isA_imported})
+#        return True
+#    
+#    def import_B(self, i, data):
+#        """ Determine whether Rho_B is imported or not.
+#        
+#        Also needs to be called at the end in order to yield "False"!!
+#        
+#        Returns
+#        -------
+#        bool
+#            Is Rho_B imported?
+#        """
+#        self.add_variable(self.func_name(), V.fde_isB_imported)
+#        mLogger.info("whether FDET program imports rhoB",
+#                     extra={"Parsed":V.fde_isB_imported})
+#        return True
+#    
+#    def import_A_legacy(self, i, data):
+#        """ Determine whether Rho_A is imported or not (legacy).
+#        
+#        Returns
+#        -------
+#        bool
+#            Is Rho_A imported?
+#        """
+#        self.add_variable(self.func_name(), V.fde_isA_imported)
+#        mLogger.info("whether FDET program imports rhoA_ref",
+#                     extra={"Parsed":V.fde_isA_imported})
+#        return True
+#    
+#    def import_B_legacy(self, i, data):
+#        """ Determine whether Rho_B is imported or not (legacy).
+#        
+#        Also needs to be called at the end in order to yield "False"!!
+#        
+#        Returns
+#        -------
+#        bool
+#            Is Rho_B imported?
+#        """
+#        self.add_variable(self.func_name(), V.fde_isB_imported)
+#        mLogger.info("boolean for density import of Rho_B",
+#                     extra={"Parsed":V.fde_isB_imported})
+#        return True
 
-    def fde_tfunc(self, l_index, data):
+    def tfunc(self, l_index, data):
         """ Determine what kinetic energy functional is used to construct
         the embedding potential.
         
@@ -735,29 +793,53 @@ rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostat
             Abbreviation of kinetic energy functional
         """
         self.add_variable(self.func_name(), V.fde_Tfunc)
-        if self.hooks["fde_tfunc"] in data[l_index]:
-#            self.print_parsed(V.fde_Tfunc, "kinetic energy functional for v_emb")
-            mLogger.info("kinetic energy functional for v_emb",
-                         extra={"Parsed":V.fde_Tfunc})
-            return data[l_index].split()[-1]
+        mLogger.info("kinetic energy functional for v_emb",
+                     extra={"Parsed":V.fde_Tfunc})
+        return data[l_index].split()[-1]
         
-    def fde_xcfunc(self, l_index, data):
-        """ Determine what kinetic energy functional is used to construct
+    def xcfunc(self, l_index, data):
+        """ Determine what exchange-correlation functional is used to construct
         the embedding potential.
         
         Returns
         -------
         string
-            Abbreviation of kinetic energy functional
+            Abbreviation of exchange-correlation energy functional
         """
         self.add_variable(self.func_name(), V.fde_XCfunc)
-        if self.hooks["fde_tfunc"] in data[l_index]:
-#            self.print_parsed(V.fde_XCfunc, "exchange-correlation functional for v_emb")
-            mLogger.info("exchange-correlation functional for v_emb",
-                         extra={"Parsed":V.fde_XCfunc})
-            return data[l_index].split()[-1]
+        mLogger.info("exchange-correlation functional for v_emb",
+                     extra={"Parsed":V.fde_XCfunc})
+        return data[l_index].split()[-1]
+    
+    def xfunc(self, l_index, data):
+        """ Determine what exchange functional is used to construct
+        the embedding potential.
         
-    def fde_nonel_ref(self, l_index, data):
+        Returns
+        -------
+        string
+            Abbreviation of exchange energy functional
+        """
+        self.add_variable(self.func_name(), V.fde_Xfunc)
+        mLogger.info("exchange functional for v_emb",
+                     extra={"Parsed":V.fde_XCfunc})
+        return data[l_index].split()[-1]
+    
+    def cfunc(self, l_index, data):
+        """ Determine what correlation functional is used to construct
+        the embedding potential.
+        
+        Returns
+        -------
+        string
+            Abbreviation of correlation energy functional
+        """
+        self.add_variable(self.func_name(), V.fde_Cfunc)
+        mLogger.info("correlation functional for v_emb",
+                     extra={"Parsed":V.fde_XCfunc})
+        return data[l_index].split()[-1]
+        
+    def nonel_ref(self, l_index, data):
         """Parses non additive properties of the reference density
         
         Returns
@@ -767,11 +849,184 @@ rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostat
         """
         self.add_variable(self.func_name(), V.fde_non_elstat_ref)
         l=[]
-        if self.hooks[self.func_name()] in data[l_index]:
-            mLogger.info("reference density non additive properties",
-                         extra={"Parsed":V.fde_non_elstat_ref})
-            l.append(float(data[l_index+2].split()[-2]))#non-additive E_xc
-            l.append(float(data[l_index+3].split()[-2]))#non-additive T_s
-            l.append(float(data[l_index+5].split()[-2]))#integrated v_xc nad
-            l.append(float(data[l_index+6].split()[-2]))#integrated v_T nad
+        mLogger.info("reference density non additive properties",
+                     extra={"Parsed":V.fde_non_elstat_ref})
+        l.append(float(data[l_index+2].split()[-2]))#non-additive E_xc
+        l.append(float(data[l_index+3].split()[-2]))#non-additive T_s
+        l.append(float(data[l_index+5].split()[-2]))#integrated v_xc nad
+        l.append(float(data[l_index+6].split()[-2]))#integrated v_T nad
         return l
+    #---------------------
+    def subsysA(self, i, data):
+        """Parses total energy of subsystem A WITHOUT embedding potential.
+        
+        Returns
+        -------
+        float
+            Energy of subsystem A in [a.u.]
+        """
+        self.add_variable(self.func_name(), V.fde_sysA)
+        mLogger.info("non-additive exchange-correlation bi-functional",
+                     extra={"Parsed":V.fde_sysA})
+        return float(data[i].split()[-2])
+    
+    def subsysB(self, i, data):
+        """Parses total energy of subsystem B if calculated within fdeman.
+        
+        Returns
+        -------
+        float
+            Energy of subsystem B in [a.u.]
+        """
+        self.add_variable(self.func_name(), V.fde_sysB)
+        mLogger.info("non-additive exchange-correlation bi-functional",
+                     extra={"Parsed":V.fde_sysB})
+        return float(data[i].split()[-2])
+    
+    def E_xc_nad(self, i, data):
+        """Parses values of the non-additive exchange-correlation bi-functional
+        
+        Returns
+        -------
+        float
+        """
+        self.add_variable(self.func_name(), V.fde_Exc_nad)
+        mLogger.info("non-additive exchange-correlation bi-functional",
+                     extra={"Parsed":V.fde_Exc_nad})
+        return float(data[i].split()[-2])
+    
+    def Ts_nad(self, i, data):
+        """Parses values of the non-additive kinetic bi-functional
+        
+        Returns
+        -------
+        float
+        """
+        self.add_variable(self.func_name(), V.fde_Ts_nad)
+        mLogger.info("non-additive kinetic bi-functional",
+                     extra={"Parsed":V.fde_Ts_nad})
+        return float(data[i].split()[-2])
+    
+    def V_xc_nad_ref(self, i, data):
+        """Parses integral of some rhoA with the non-additive 
+        exchange-correlation potential obtained with rhoA_ref:
+        
+        :math:`\\int \\rho_{A}\\cdot v_{xc}^{nad}[\\rho_{A}^{ref},
+        \\rho_{B}](\\mathbf{r})`
+        
+        
+        Returns
+        -------
+        float
+        """
+        self.add_variable(self.func_name(), V.fde_int_xc_nad_ref)
+        mLogger.info(("expectation value of non-additive XC REFERENCE"
+                      "potential"),
+                     extra={"Parsed":V.fde_int_xc_nad_ref})
+        return float(data[i+1].split()[-2])
+    
+    def V_xc_nad(self, i, data):
+        """Parses integral of some rhoA with the non-additive 
+        exchange-correlation potential obtained with rhoA_emb (HF):
+        
+        :math:`\\int \\rho_{A}\\cdot v_{xc}^{nad}[\\rho_{A}^{emb,HF},
+        \\rho_{B}](\\mathbf{r})`
+        
+        
+        Returns
+        -------
+        float
+        """
+        self.add_variable(self.func_name(), V.fde_int_xc_nad)
+        mLogger.info(("expectation value of non-additive XC UPDATED"
+                      "potential"),
+                     extra={"Parsed":V.fde_int_xc_nad})
+        return float(data[i+1].split()[-2])
+    
+    def V_t_nad_ref(self, i, data):
+        """Parses integral of some rhoA with the non-additive kinetic
+        potential obtained with rhoA_ref:
+        
+        :math:`\\int \\rho_{A}\\cdot v_{xc}^{nad}[\\rho_{A}^{ref},
+        \\rho_{B}](\\mathbf{r})`
+        
+        
+        Returns
+        -------
+        float
+        """
+        self.add_variable(self.func_name(), V.fde_int_Ts_nad_ref)
+        mLogger.info(("expectation value of non-additive kinetic REFERENCE"
+                      "potential"),
+                     extra={"Parsed":V.fde_int_Ts_nad_ref})
+        return float(data[i+2].split()[-2])
+    
+    def V_t_nad(self, i, data):
+        """Parses integral of some rhoA with the non-additive kinetic
+        potential obtained with rhoA_emb (HF):
+        
+        :math:`\\int \\rho_{A}\\cdot v_{xc}^{nad}[\\rho_{A}^{emb,HF},
+        \\rho_{B}](\\mathbf{r})`
+        
+        
+        Returns
+        -------
+        float
+        """
+        self.add_variable(self.func_name(), V.fde_int_Ts_nad)
+        mLogger.info(("expectation value of non-additive kinetic UPDATED"
+                      "potential"),
+                     extra={"Parsed":V.fde_int_Ts_nad})
+        return float(data[i+2].split()[-2])
+    
+    def J_int(self, i, data):
+        """Parses Coulomb repulsion of rhoA and rhoB.
+        
+         :math:`\\int\\int\\frac{\\rho_{A}(\\mathbf{r})\\rho_{B}(\\mathbf{r}')}
+         {|\\mathbf{r}-\\mathbf{r}'|}\\mathrm{d}\\mathbf{r}'\\mathrm{d}
+         \\mathbf{r}`
+        
+        Returns
+        -------
+        float
+        """
+        self.add_variable(self.func_name(), V.fde_J)
+        mLogger.info("Coulomb repulsion of rhoA-rhoB",
+                     extra={"Parsed":V.fde_J})
+        return float(data[i].split()[-2])
+    
+    def AnucB(self, i, data):
+        """Parses Coulomb attraction of rhoA and NucB.
+        
+        :math:`\\int \\rho_{A}\\cdot v_B\\mathrm{d}
+        \\mathbf{r}`
+        
+        """
+        self.add_variable(self.func_name(), V.fde_AnucB)
+        mLogger.info("Coulomb attraction of rhoA-nucB",
+                     extra={"Parsed":V.fde_AnucB})
+        return float(data[i].split()[-2])
+    
+    def BnucA(self, i, data):
+        """Parses Coulomb attraction of rhoB and NucA.
+        
+        :math:`\\int \\rho_{B}\\cdot v_A\\mathrm{d}
+        \\mathbf{r}`
+        
+        """
+        self.add_variable(self.func_name(), V.fde_BnucA)
+        mLogger.info("Coulomb attraction of rhoB-nucA",
+                     extra={"Parsed":V.fde_BnucA})
+        return float(data[i].split()[-2])
+    
+    def V_NA_NB(self, i , data):
+        """Parses Coulomb repulsion of nuclei NucA and NucB.
+        
+        :math:`\\sum_{A}\\sum_{B} \\frac{Z_{A}Z_{B}}{|\\mathbf{R}_{A} -
+        \\mathbf{R}_{B}|}`
+    
+        """
+        self.add_variable(self.func_name(), V.fde_VNN)
+        mLogger.info("Coulomb repulsion of nucA-nucB",
+                     extra={"Parsed":V.fde_VNN})
+        return float(data[i].split()[-2])

@@ -66,12 +66,31 @@ class VarNames(object):
     fde_scf_vemb = "fde_scf_vemb"
     fde_scf_vemb_components = "fde_scf_comp"
     fde_expansion = "fde_expansion"
+    fde_method_rhoA = "fde_method_A"
     fde_method_rhoB = "fde_method_B"
     fde_isA_imported = "fde_import_A"
     fde_isB_imported = "fde_import_B"
     fde_Tfunc = "fde_Tfunc"
     fde_XCfunc = "fde_XCfunc"
+    fde_Xfunc = "fde_Xfunc"
+    fde_Cfunc = "fde_Cfunc"
     fde_non_elstat_ref = "fde_non_elstat_ref"
+    # subsystem
+    fde_sysA = "E_A"
+    fde_sysB = "E_B"
+    # nonelectrostatic
+    fde_Exc_nad        = "Exc_nad"
+    fde_Ts_nad         = "Ts_nad"
+    fde_int_xc_nad_ref = "Vxc_nad_ref"
+    fde_int_Ts_nad_ref = "Vt_nad_ref"
+    fde_int_xc_nad     = "Vxc_nad"
+    fde_int_Ts_nad     = "Vt_nad"
+    # electrostatic
+    fde_J     = "J_int"
+    fde_AnucB = "AnucB"#rhoA * vB
+    fde_BnucA = "BnucA"#rhoB * vA
+    fde_VNN   = "V_AB"
+    
     
     
     
