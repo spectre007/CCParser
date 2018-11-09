@@ -920,7 +920,7 @@ class FDE_ADC(QCMethod):
         float
         """
         self.add_variable(self.func_name(), V.fde_int_xc_nad_ref)
-        mLogger.info(("expectation value of non-additive XC REFERENCE"
+        mLogger.info(("expectation value of non-additive XC REFERENCE "
                       "potential"),
                      extra={"Parsed":V.fde_int_xc_nad_ref})
         return float(data[i+1].split()[-2])
@@ -938,7 +938,7 @@ class FDE_ADC(QCMethod):
         float
         """
         self.add_variable(self.func_name(), V.fde_int_xc_nad)
-        mLogger.info(("expectation value of non-additive XC UPDATED"
+        mLogger.info(("expectation value of non-additive XC UPDATED "
                       "potential"),
                      extra={"Parsed":V.fde_int_xc_nad})
         return float(data[i+1].split()[-2])
@@ -956,7 +956,7 @@ class FDE_ADC(QCMethod):
         float
         """
         self.add_variable(self.func_name(), V.fde_int_Ts_nad_ref)
-        mLogger.info(("expectation value of non-additive kinetic REFERENCE"
+        mLogger.info(("expectation value of non-additive kinetic REFERENCE "
                       "potential"),
                      extra={"Parsed":V.fde_int_Ts_nad_ref})
         return float(data[i+2].split()[-2])
@@ -974,7 +974,7 @@ class FDE_ADC(QCMethod):
         float
         """
         self.add_variable(self.func_name(), V.fde_int_Ts_nad)
-        mLogger.info(("expectation value of non-additive kinetic UPDATED"
+        mLogger.info(("expectation value of non-additive kinetic UPDATED "
                       "potential"),
                      extra={"Parsed":V.fde_int_Ts_nad})
         return float(data[i+2].split()[-2])
