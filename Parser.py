@@ -1,14 +1,17 @@
 from .ParserData import Struct
 from .ParserData import ParseContainer
+from .ParserData import StructEncoder
 from .QCBase import GenFormatter, VarNames as V
 import importlib as il
 import os.path, inspect
 import re
 import logging
+import json
 
 class Parser(object):
     def __init__(self, output, *, software=None, toConsole=True,
-                 toFile=False, logname="CCParser.log"):#cf. PEP-3102
+                 toFile=False, logname="CCParser.log", json=False,
+                 json_file="CCParser.json"):#cf. PEP-3102
         """ Parser constructor.
         
         Parameters
@@ -35,6 +38,7 @@ class Parser(object):
         if software != None:
             self.software = software
         else:
+            self.find_software()
             raise ValueError("No software specified!")
 
         self.output_basename = os.path.basename(output)
@@ -63,6 +67,9 @@ class Parser(object):
             setattr(self.results, V.has_finished, container)
             self.logger.warning("Output indicates abnormal exit. Added "+
                                 "[results.has_finished] = False")
+        
+        if json:
+            self.dump_json(fname=json_file)
         self.logger.warning("CCParser has finished.")
         self.loggerCleanUp()
 
@@ -75,7 +82,7 @@ class Parser(object):
     def read_input(self, f_input):
         """ (Optional) Read input file """
         with open(f_input) as n:
-            self.rawData.insert(0,n.readlines())
+            self.rawData.insert(0, n.readlines())
             
     def canParse(self, line, mthd):
         """ Check if line is parsable """
@@ -124,12 +131,13 @@ class Parser(object):
             raise ValueError("The specified software is misspelled or not implemented yet!")
         global m
 #        m = il.import_module(m_package+".methods",package="CCParser")
-        m = il.import_module(m_package,package="CCParser")
+        m = il.import_module(m_package, package="CCParser")
         self.method_names = [k[0] for k in inspect.getmembers(m,
                              inspect.isclass) if k[1].__module__ == "CCParser"+m_package]
-        self.methods = [getattr(m,mname)() for mname in self.method_names]#this also instantiates!!
+        self.methods = [getattr(m, mname)() for mname in self.method_names]#this also instantiates!!
 
     def setupLogger(self):
+        """Initiate logger for CCParser.Parser"""
         # Set main logger's minimum output level
         self.logger.setLevel(logging.INFO)
         # Set up Formatter
@@ -182,4 +190,19 @@ class Parser(object):
             container = ParseContainer(0, False)
             setattr(self.results, V.has_finished, container)
             self.logger.warning("Output indicates abnormal exit.")
+            
+    def dump_json(self, fname="CCParser.json"):
+        """Dumps contens of the CCParser.results container to a JSON file.
+        
+        Parameters
+        ----------
+        fname : str
+            Filename to dump to.
+        """
+        with open(fname) as pdump:
+            json.dump(self.results, pdump, cls=StructEncoder)
+        self.logger.warning("Dumped CCParser.results to JSON file.")
+        
+    def find_software(self):
+        pass
     

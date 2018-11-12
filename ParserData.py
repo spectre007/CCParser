@@ -109,7 +109,7 @@ class ParseContainer(object):
     
 
     
-class StructEncorder(json.JSONEncoder):
+class StructEncoder(json.JSONEncoder):
     def default(self, struct):
         if isinstance(struct, Struct):
             results = {}
