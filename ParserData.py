@@ -1,5 +1,6 @@
 from . import constants as c
 import numpy as np
+import json
 
 class Struct(object):
     """ Struct-like container object """
@@ -50,6 +51,19 @@ class ParseContainer(object):
     def get_data(self):
         return self.data
     
+    def get_lines(self):
+        return self.lines
+    
+#    def get_dict(self):
+#        """
+#        
+#        Warning: if two line numbers are the same, value will be overwritten!
+#        """
+#        return dict(zip(self.lines, self.data))
+    
+    def to_tuple(self):
+        return tuple(zip(self.lines, self.data))
+       
     def __len__(self):
         assert len(self.data) == len(self.lines)
         return len(self.data)
@@ -93,8 +107,18 @@ class ParseContainer(object):
             s+= str(self.lines[i]) + 3*" " + str(self.data[i]) + "\n"
         return s
     
+
     
-        
+class StructEncorder(json.JSONEncoder):
+    def default(self, struct):
+        if isinstance(struct, Struct):
+            results = {}
+            for label, pc in struct.__dict__.items():
+#                results[label] = [pc.lines, pc.data]
+                results[label] = pc.to_tuple()
+            return results
+        else:
+            super().default(self, struct)
         
 class MolecularOrbitals(object):# TODO: change name? "MolecularOrbitalEnergies"
     """ General molecular orbital class, which has more functionality than simple arrays """
