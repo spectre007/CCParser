@@ -13,8 +13,9 @@ class ParseContainer(object):
     There should be one instance/parsed quantity. """
     def __init__(self):
         self.nversion = 0
-        self.data = []
-        self.lines = []
+        self.data     = []
+        self.lines    = []
+        self.serializable = False
         
     @classmethod
     def from_obj(cls, line, parsed_obj):
@@ -54,15 +55,36 @@ class ParseContainer(object):
     def get_lines(self):
         return self.lines
     
-#    def get_dict(self):
-#        """
-#        
-#        Warning: if two line numbers are the same, value will be overwritten!
-#        """
-#        return dict(zip(self.lines, self.data))
+    def make_serializable(self):
+        """Turn fancy data types into sth that json.dump can recognize. """
+        try:
+            dt = type(self.data[0])
+        except IndexError:
+            raise ParserDataError(("ParseContainer not serializable (data list"
+                                   " empty)."))
+        # take care of numpy data types
+        if dt.__module__ == "numpy" or "numpy." in dt.__module__:
+            encoder = NumpyEncoder()
+            self.data = [encoder.default(obj) for obj in self.data]
+        # CCParser data types
+        elif dt == MolecularOrbitals or dt == Amplitudes:
+            self.data = [obj.encode() for obj in self.data]
+        # assume other datatypes are serializable
+        self.serializable = True
     
     def to_tuple(self):
-        return tuple(zip(self.lines, self.data))
+        if self.serializable:
+            return tuple(zip(self.data, self.lines))
+        else:
+            self.make_serializable()
+            return tuple(zip(self.data, self.lines))
+    
+    def to_list(self):
+        if self.serializable:
+            return list(zip(self.data, self.lines))
+        else:
+            self.make_serializable()
+            return list(zip(self.data, self.lines))
        
     def __len__(self):
         assert len(self.data) == len(self.lines)
@@ -86,7 +108,6 @@ class ParseContainer(object):
         self.lines.remove(idx)
         
     def __iter__(self):
-#        self.n = 0
         return iter(self.data)
         
 #    def __next__(self):
@@ -107,33 +128,65 @@ class ParseContainer(object):
             s+= str(self.lines[i]) + 3*" " + str(self.data[i]) + "\n"
         return s
     
-
+class ParserDataError(Exception):
+    """Raise for ParserData related errors. """
     
 class StructEncoder(json.JSONEncoder):
     def default(self, struct):
         if isinstance(struct, Struct):
             results = {}
             for label, pc in struct.__dict__.items():
-#                results[label] = [pc.lines, pc.data]
-                results[label] = pc.to_tuple()
+                results[label] = pc.to_list()
             return results
         else:
             super().default(self, struct)
+
+class NumpyEncoder(json.JSONEncoder):
+    """ Special json encoder for numpy types """
+    def default(self, obj):
+        if isinstance(obj, (np.int_, np.intc, np.intp, np.int8, np.int16,
+                            np.int32, np.int64, np.uint8, np.uint16, np.uint32,
+                            np.uint64)):
+            return int(obj)
+        elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
+            return float(obj)
+        elif isinstance(obj, (np.ndarray,)): #### This is the fix
+            return obj.tolist()
+        else:
+            super().default(self, obj)
         
 class MolecularOrbitals(object):# TODO: change name? "MolecularOrbitalEnergies"
-    """ General molecular orbital class, which has more functionality than simple arrays """
+    """ General molecular orbital class, which has more functionality than 
+        simple arrays.
+    """
     def __init__(self, o, v):
-        self.occ = list(map(float,o))
-        self.virt = list(map(float,v))
-        self.n_occ = len(o)
+        self.occ    = list(map(float, o))
+        self.virt   = list(map(float, v))
+        self.n_occ  = len(o)
         self.n_virt = len(v)
-        self.homo = max(self.occ)
-        self.lumo = min(self.virt)
-        self.n_orb = self.n_occ + self.n_virt
+        self.n_orb  = self.n_occ + self.n_virt
+        self.homo   = max(self.occ ) if self.n_occ  > 0 else 0
+        self.lumo   = min(self.virt) if self.n_virt > 0 else 0
         
+    @classmethod
+    def from_dict(cls, d):
+        try:
+            return cls(d["occ"], d["virt"])
+        except (KeyError, TypeError) as e:
+            raise ParserDataError(("Dictionary not suitable to create "
+                                  "MolecularOrbitals object."))
+    
+    @classmethod
+    def from_tuples(cls, t):
+        # find first occurrence of virt
+        idx = next(t.index(i) for i in t if i[1] == "virt" or i[1] == "v")
+        # create lists using the index
+        o, dummy = zip(*t[:idx])
+        v, dummy = zip(*t[idx:])
+        return cls(o, v)
     
     def __str__(self):
-        n1 = [i for i in range(1,self.n_occ+1)]
+        n1 = [i for i in range(1, self.n_occ+1)]
         n2 = [i for i in range(self.n_occ +1, self.n_orb+1)]
         s = "\n"
         for i in range(0, len(self.occ), 10):
@@ -165,6 +218,22 @@ class MolecularOrbitals(object):# TODO: change name? "MolecularOrbitalEnergies"
             s = "Index: {0:3d}, Number of frozen virtuals: {1:3d}, ({2:.1%})".format(idx, freeze, part_of_v)
             print(s)
             
+    def to_dict(self):
+        return {"occ" : self.occ, "virt" : self.virt}
+    
+    def to_tuples(self):
+        return list(zip(self.occ,  ["occ"  for i in range(self.n_occ )])) \
+             + list(zip(self.virt, ["virt" for i in range(self.n_virt)]))
+    
+    def encode(self, fmt=tuple):
+        if fmt == tuple:
+            print("exporting to tuples")
+            return self.to_tuples()
+        elif fmt == dict:
+            return self.to_dict()
+        else:
+            raise ValueError("Export format not recognized.")
+            
 class Amplitudes(object):
     """ General container for amplitudes of one state for easier access to and export of amplitude data """
     def __init__(self, occ, virt, v, factor=1.0):
@@ -173,11 +242,12 @@ class Amplitudes(object):
         self.v = v
         self.factor = factor
         self.weights = list(map(lambda x: self.factor * x**2, self.v))
+        self.print_thr = 0.05
     
     def __str__(self):
-        s = "Amplitudes: Weights > 5%\n"
+        s = "Amplitudes: Weights > {0:.0%}\n".format(self.print_thr)
         for i in range(len(self.occ)):
-            if self.weights[i] > 0.05:
+            if self.weights[i] > self.print_thr:
                 if len(self.occ[i]) == 1:
                     s += "{0:>4} -> {1:>4} : {2:.1f}\n".format(self.occ[i][0],
                           self.virt[i][0], 100*self.weights[i])
@@ -219,8 +289,20 @@ class Amplitudes(object):
                         pd.Series(self.weights, name="weight")], axis=1)
         return df[(df["weight"] > thresh)] # trim DataFrame based on awesome function
     
-    def get_single_list(self):
+    def to_list(self):
         """ Return single list of amplitude data in the format:
-            [[occ_i, occ_j,..., virt_a, virt_b,..., ampl], ...] """
-        return []
+            [[occ_i, occ_j,..., virt_a, virt_b,..., ampl], ...]
+        """
+        ampl = []
+        for i, v in enumerate(self.v):
+            ampl.append(self.occ[i] + self.virt[i] + [v])
+        return ampl
+    
+    def encode(self, fmt=list):
+        if fmt == list:
+            return self.to_list()
+#        elif fmt == pd.DataFrame:
+#            return self.to_dataframe()
+        else:
+            raise ValueError("Export format not recognized.")
 

@@ -199,7 +199,7 @@ class Parser(object):
         fname : str
             Filename to dump to.
         """
-        with open(fname) as pdump:
+        with open(fname, "w") as pdump:
             json.dump(self.results, pdump, cls=StructEncoder)
         self.logger.warning("Dumped CCParser.results to JSON file.")
         
