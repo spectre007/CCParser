@@ -137,27 +137,24 @@ class General(QCMethod):
     def xyz_coordinates(self, l_index, data):
         """ Get XYZ coordinates """
         self.add_variable(self.func_name(), V.xyz_coordinates)
-        if self.hooks[self.func_name()] in data[l_index]:
-            xyz_dat, n = [], 0
-            while True:
-                if "------------" in data[l_index+3+n]:
-                    break
-                else:
-                    xyz_dat.append(data[l_index+3+n].split()[1:])
-                    n += 1
-            xyz_dat = [[x[0]]+list(map(float,x[1:])) for x in xyz_dat]
+        xyz_dat, n = [], 0
+        while True:
+            if "------------" in data[l_index+3+n]:
+                break
+            else:
+                xyz_dat.append(data[l_index+3+n].split()[1:])
+                n += 1
+        xyz_dat = [[x[0]]+list(map(float,x[1:])) for x in xyz_dat]
 #            self.print_parsed(V.xyz_coordinates, "XYZ coordinates")
-            mLogger.info("XYZ coordinates", extra={"Parsed":V.xyz_coordinates})
-            return xyz_dat
+        mLogger.info("XYZ coordinates", extra={"Parsed":V.xyz_coordinates})
+        return xyz_dat
 
     def nuc_rep(self, l_index, data):
         """ Get nuclear repulsion energy [a.u.] """
         self.add_variable(self.func_name(), V.nuc_repulsion)
-        if self.hooks[self.func_name()] in data[l_index]:
-#            self.print_parsed(V.nuc_repulsion, "nuclear repulsion energy")
-            mLogger.info("nuclear repulsion energy",
-                         extra={"Parsed":V.nuc_repulsion})
-            return float(data[l_index].split()[-2])
+        mLogger.info("nuclear repulsion energy",
+                     extra={"Parsed":V.nuc_repulsion})
+        return float(data[l_index].split()[-2])
     
     def n_basis(self, l_index, data):
         """ Parse number of basis functions """
@@ -172,35 +169,33 @@ class General(QCMethod):
     def mulliken(self, l_index, data):
         """ Parse ground-state mulliken charges """
         self.add_variable(self.func_name(), V.mulliken)
-        if self.hooks[self.func_name()] in data[l_index]:
-            chg, n = [], 0
-            while True:
-                if "-------" in data[l_index+4+n]:
-                    break
-                else:
-                    chg.append(data[l_index+4+n].split()[1:])
-                    n += 1
-            chg = [[x[0]]+[float(x[1])] for x in chg]
+        chg, n = [], 0
+        while True:
+            if "-------" in data[l_index+4+n]:
+                break
+            else:
+                chg.append(data[l_index+4+n].split()[1:])
+                n += 1
+        chg = [[x[0]]+[float(x[1])] for x in chg]
 #            self.print_parsed(V.mulliken, "Ground-State Mulliken charges")
-            mLogger.info("Ground-State Mulliken charges",
-                         extra={"Parsed":V.mulliken})
-            return chg
+        mLogger.info("Ground-State Mulliken charges",
+                     extra={"Parsed":V.mulliken})
+        return chg
         
     def chelpg(self, l_index, data):
         """ Parse ground-state ChElPG charges """
         self.add_variable(self.func_name(), V.chelpg)
-        if self.hooks[self.func_name()] in data[l_index]:
-            chg, n = [], 0
-            while True:
-                if "-------" in data[l_index+4+n]:
-                    break
-                else:
-                    chg.append(data[l_index+4+n].split()[1:])
-                    n += 1
-            chg = [[x[0]]+[float(x[1])] for x in chg]
+        chg, n = [], 0
+        while True:
+            if "-------" in data[l_index+4+n]:
+                break
+            else:
+                chg.append(data[l_index+4+n].split()[1:])
+                n += 1
+        chg = [[x[0]]+[float(x[1])] for x in chg]
 #            self.print_parsed(V.chelpg, "Ground-State ChElPG charges")
-            mLogger.info("Ground-State ChElPG charges", extra={"Parsed":V.chelpg})
-            return chg
+        mLogger.info("Ground-State ChElPG charges", extra={"Parsed":V.chelpg})
+        return chg
     
     def has_finished(self, i, data):
         """ Parse final statement that indicates if Q-Chem finished
@@ -208,7 +203,7 @@ class General(QCMethod):
         self.add_variable(self.func_name(), V.has_finished)
         mLogger.info("whether Q-Chem has finished successfully",
                      extra={"Parsed": V.has_finished})
-        return True if self.hooks[self.func_name()] in data[i] else False
+        return True
     
     def basis_name(self, i, data):
         """ Parse name of basis set. """
@@ -240,42 +235,38 @@ class SCF(QCMethod):
         """ Parse Hartree-Fock molecular orbital energies """
         #self.map["mos"] = "orb_energies"
         self.add_variable(self.func_name(), V.mo_energies)
-        if self.hooks["mo_energies"] in data[l_index]:
-            n = 0
-            while True:
-                if "------------" in data[l_index+2+n]:
-                    n += 1
-                    break
-                else:
-                    n += 1
-            s = "".join(data[l_index+2:l_index+2+n])
+        n = 0
+        while True:
+            if "------------" in data[l_index+2+n]:
+                n += 1
+                break
+            else:
+                n += 1
+        s = "".join(data[l_index+2:l_index+2+n])
 #            occpatt = r"-- Occupied --\s+(-?\d+\.\d+\s*){1,}\s+"
-            occp = r"-- Occupied --([^A-Z]*)-- Virtual --"
-            virt = r"-- Virtual --([^A-Z]*)[-]{4,}"
+        occp = r"-- Occupied --([^A-Z]*)-- Virtual --"
+        virt = r"-- Virtual --([^A-Z]*)[-]{4,}"
 #            rem = re.search(occpatt,s,re.MULTILINE)
-            rem2 = re.search(occp,s,re.MULTILINE)
-            rem3 = re.search(virt,s,re.MULTILINE)
-            if rem2:  
-                a_occ = re.findall("-?\d+\.\d+",rem2.group(0),re.M)
-            if rem3:
-                a_virt = re.findall("-?\d+\.\d+",rem3.group(0),re.M)
-            alpha = MolecularOrbitals(a_occ,a_virt)
-#            self.print_parsed(V.mo_energies, "molecular orbital energies")
-            mLogger.info("molecular orbital energies",
-                         extra={"Parsed":V.mo_energies})
-            return alpha
+        rem2 = re.search(occp,s,re.MULTILINE)
+        rem3 = re.search(virt,s,re.MULTILINE)
+        if rem2:  
+            a_occ = re.findall("-?\d+\.\d+",rem2.group(0),re.M)
+        if rem3:
+            a_virt = re.findall("-?\d+\.\d+",rem3.group(0),re.M)
+        alpha = MolecularOrbitals(a_occ,a_virt)
+        mLogger.info("molecular orbital energies",
+                     extra={"Parsed":V.mo_energies})
+        return alpha
         
     def overlap_matrix(self, l_index, data):
         """ Parse overlap matrix S """
         self.add_variable(self.func_name(), V.overlap_matrix)
-#        self.print_parsed(V.overlap_matrix, "overlap matrix")
         mLogger.info("overlap matrix", extra={"Parsed":V.overlap_matrix})
         return parse_symmetric_matrix(data, l_index)
     
     def orthonorm_matrix(self, l_index, data):
         """ Parse orthonormalization matrix X """
         self.add_variable(self.func_name(), V.orthonorm_matrix)
-#        self.print_parsed(V.orthonorm_matrix, "orthonormalization matrix")
         mLogger.info("orthonormalization matrix",
                      extra={"Parsed":V.orthonorm_matrix})
         return parse_symmetric_matrix(data, l_index)
@@ -283,7 +274,6 @@ class SCF(QCMethod):
     def alpha_density_matrix(self, l_index, data):
         """ Parse alpha density matrix P_alpha """
         self.add_variable(self.func_name(), V.alpha_dens_mat)
-#        self.print_parsed(V.alpha_dens_mat, "SCF alpha density matrix")
         mLogger.info("SCF alpha density matrix",
                      extra={"Parsed":V.alpha_dens_mat})
         return parse_symmetric_matrix(data, l_index)
@@ -292,7 +282,6 @@ class SCF(QCMethod):
         """ Parse MO coefficients C for restricted SCF"""
         self.add_variable(self.func_name(), V.mo_coefficients)
         C = parse_AO_matrix(data, l_index)
-#        self.print_parsed(V.mo_coefficients, "{0:} molecular orbital coefficients".format(C.shape[0]))
         mLogger.info("{0:} molecular orbital coefficients".format(C.shape[0]),
                      extra={"Parsed":V.mo_coefficients})
         return C
@@ -319,29 +308,23 @@ class ADC(QCMethod):
     def exc_energies(self, l_index, data):
         """ Parse excitation energies [eV] """
         self.add_variable(self.func_name(), V.exc_energy_rel)
-        if self.hooks["exc_energies"] in data[l_index]:
-#            self.print_parsed(V.exc_energy_rel, "relative ADC(x) excitation energy/-ies in [eV]")
-            mLogger.info("relative ADC(x) excitation energy/-ies [eV]",
-                         extra={"Parsed":V.exc_energy_rel})
-            return float(data[l_index].split()[-2])
+        mLogger.info("relative ADC(x) excitation energy/-ies [eV]",
+                     extra={"Parsed":V.exc_energy_rel})
+        return float(data[l_index].split()[-2])
         
     def osc_strength(self, l_index, data):
         """ Parse oscillator strengths """
         self.add_variable(self.func_name(), V.osc_str)
-        if self.hooks["osc_strength"] in data[l_index]:
-#            self.print_parsed(V.osc_str, "ADC oscillator strength/s")
-            mLogger.info("ADC oscillator strength/s",
-                         extra={"Parsed":V.osc_str})
-            return float(data[l_index].split()[-1])
+        mLogger.info("ADC oscillator strength/s",
+                     extra={"Parsed":V.osc_str})
+        return float(data[l_index].split()[-1])
         
     def scf_energy(self, l_index, data):
         """ Parse SCF energy [a.u.] from adcman """
         self.add_variable(self.func_name(), V.scf_energy)
-        if self.hooks["scf_energy"] in data[l_index]:
-#            self.print_parsed(V.scf_energy, "SCF energy in [a.u.] (adcman)")
-            mLogger.info("SCF energy in [a.u.] (adcman)",
-                         extra={"Parsed":V.scf_energy})
-            return float(data[l_index+2].split()[-2])
+        mLogger.info("SCF energy in [a.u.] (adcman)",
+                     extra={"Parsed":V.scf_energy})
+        return float(data[l_index+2].split()[-2])
         
     def mp_energy(self, l_index, data):
         """ Parse MP(x) reference state energy [a.u.] from adcman """
@@ -376,32 +359,30 @@ class ADC(QCMethod):
     def amplitudes(self, l_index, data):
         """ Parse occ -> virt amplitudes """
         self.add_variable(self.func_name(), V.amplitudes)
-        if self.hooks["amplitudes"] in data[l_index]:
-            try:
-                # regex has the awesome captures feature
-                import regex
-                expr = r"(?:(?P<orb>\d+) [^0-9]+)+ (?P<ampl>-?\d+\.\d+)" # FIXME: [^0-9] might be a problem if symmetry is on
-                srch = regex.search
-                have_regex = True
-            except ImportError:
-                 # explicit expression for orbital transitions
-                 expr = r"(\d+) [^0-9]+ ((\d+) [^0-9]+)? (\d+) [^0-9]+ ((\d+) [^0-9]+)? (-?\d+\.\d+)"
-                 srch = re.search
-                 have_regex = False
-        
-            idx = l_index+3
-            amplist = []
-            while "--------" not in data[idx]:
-                match = srch(expr, data[idx])
-                if match:
-                    if have_regex:
-                        orb = list(map(int, match.captures("orb")))
-                        amp = list(map(float, match.captures("ampl")))
-                        amplist.append(orb + amp)
-                    else:
-                        amplist.append([int(match.group(x)) for x in [1,3,4,6] if (match.group(x) != None)]+[float(match.group(7))])
-                idx += 1
-#        self.print_parsed(V.amplitudes, "ADC amplitudes")
+        try:
+            # regex has the awesome captures feature
+            import regex
+            expr = r"(?:(?P<orb>\d+) [^0-9]+)+ (?P<ampl>-?\d+\.\d+)" # FIXME: [^0-9] might be a problem if symmetry is on
+            srch = regex.search
+            have_regex = True
+        except ImportError:
+             # explicit expression for orbital transitions
+             expr = r"(\d+) [^0-9]+ ((\d+) [^0-9]+)? (\d+) [^0-9]+ ((\d+) [^0-9]+)? (-?\d+\.\d+)"
+             srch = re.search
+             have_regex = False
+    
+        idx = l_index+3
+        amplist = []
+        while "--------" not in data[idx]:
+            match = srch(expr, data[idx])
+            if match:
+                if have_regex:
+                    orb = list(map(int, match.captures("orb")))
+                    amp = list(map(float, match.captures("ampl")))
+                    amplist.append(orb + amp)
+                else:
+                    amplist.append([int(match.group(x)) for x in [1,3,4,6] if (match.group(x) != None)]+[float(match.group(7))])
+            idx += 1
         mLogger.info("ADC amplitudes", extra={"Parsed":V.amplitudes})
         return Amplitudes.from_list(amplist, factor=2.0)
 
@@ -413,11 +394,9 @@ class ADC(QCMethod):
         float
             The total dipole moment [Debye]"""
         self.add_variable(self.func_name(), V.total_dipole)
-        if self.hooks["total_dipole"] in data[l_index]: 
-#            self.print_parsed(V.total_dipole, "Total dipole")
-            mLogger.info("Total dipole moment [Debye]",
-                         extra={"Parsed":V.total_dipole})
-            return float(data[l_index].split()[-1])
+        mLogger.info("Total dipole moment [Debye]",
+                     extra={"Parsed":V.total_dipole})
+        return float(data[l_index].split()[-1])
     
     def dipole_moment(self, l_index, data):
         """ Parse dipole moment components in [a.u.] 
@@ -468,19 +447,17 @@ class ADC(QCMethod):
     def mulliken_adc(self, l_index, data):
         """ Parse MP(x) and ADC(x) mulliken charges """
         self.add_variable(self.func_name(), V.mulliken)
-        if self.hooks[self.func_name()] in data[l_index]:
-            chg, n = [], 0
-            while True:
-                if "-------" in data[l_index+3+n]:
-                    break
-                else:
-                    chg.append(data[l_index+3+n].split()[1:])
-                    n += 1
-            chg = [[x[0]]+[float(x[1])] for x in chg]
-#            self.print_parsed(V.mulliken, "MP(x)/ADC(x) Mulliken charges")
-            mLogger.info("MP(x)/ADC(x) Mulliken charges",
-                         extra={"Parsed":V.mulliken})
-            return chg
+        chg, n = [], 0
+        while True:
+            if "-------" in data[l_index+3+n]:
+                break
+            else:
+                chg.append(data[l_index+3+n].split()[1:])
+                n += 1
+        chg = [[x[0]]+[float(x[1])] for x in chg]
+        mLogger.info("MP(x)/ADC(x) Mulliken charges",
+                     extra={"Parsed":V.mulliken})
+        return chg
     
 class FDE_ADC(QCMethod):
     """ Parsing related to FDE-ADC implementation in Q-Chem """
