@@ -10,7 +10,7 @@ import json
 
 class Parser(object):
     def __init__(self, output, *, software=None, toConsole=True,
-                 toFile=False, logname="CCParser.log", json=False,
+                 toFile=False, log_file="CCParser.log", json=False,
                  json_file="CCParser.json"):#cf. PEP-3102
         """ Parser constructor.
         
@@ -32,7 +32,7 @@ class Parser(object):
         self.logger = logging.getLogger("CCParser")
         self.toConsole = toConsole
         self.toFile = toFile
-        self.logname = logname
+        self.logname = log_file
         self.setupLogger()
         
         if software != None:
