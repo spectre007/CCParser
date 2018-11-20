@@ -227,7 +227,6 @@ class MolecularOrbitals(object):# TODO: change name? "MolecularOrbitalEnergies"
     
     def encode(self, fmt=tuple):
         if fmt == tuple:
-            print("exporting to tuples")
             return self.to_tuples()
         elif fmt == dict:
             return self.to_dict()
