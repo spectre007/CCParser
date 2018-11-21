@@ -14,6 +14,20 @@ from .QCBase import QCMethod, VarNames as V
 # create module logger
 mLogger = logging.getLogger("CCParser.Psi4")
 
+class General(QCMethod):
+    """Parse quantities related to Symmetry-Adapted Perturbation Theory."""
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        # hooks as {function_name : hook_string}
+        # [!!!!] just temporary fix since I can't make out a has_finished hook!
+        self.hooks = {"has_finished" : "Warning! sapt0 does not have an associated derived wavefunction."}
+        
+    def has_finished(self, i, data):
+        """ Parse final statement that indicates if Gaussian finished
+        without errors. """
+        self.add_variable(self.func_name(), V.has_finished)
+        mLogger.info("whether Psi4 has finished successfully",
+                     extra={"Parsed": V.has_finished})
 
 class SAPT(QCMethod):
     """Parse quantities related to Symmetry-Adapted Perturbation Theory."""
@@ -58,8 +72,7 @@ class SAPT(QCMethod):
             Total interaction energy at SAPT0 level in 
         """
         self.add_variable(self.func_name(), V.sapt0_total)
-        if self.hooks["sapt0_total"] in data[n]:
-            sapt0 = float(data[n].split()[2])
-            mLogger.info("SAPT0 interaction energy in [mEh]",
-                         extra={"Parsed":V.sapt0_total})
-            return sapt0
+        sapt0 = float(data[n].split()[2])
+        mLogger.info("SAPT0 interaction energy in [mEh]",
+                     extra={"Parsed":V.sapt0_total})
+        return sapt0
