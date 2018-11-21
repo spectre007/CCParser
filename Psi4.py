@@ -28,6 +28,7 @@ class General(QCMethod):
         self.add_variable(self.func_name(), V.has_finished)
         mLogger.info("whether Psi4 has finished successfully",
                      extra={"Parsed": V.has_finished})
+        return True
 
 class SAPT(QCMethod):
     """Parse quantities related to Symmetry-Adapted Perturbation Theory."""
