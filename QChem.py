@@ -38,25 +38,30 @@ def parse_symmetric_matrix(readlin, n, asmatrix=True):
     index_line = n+1
     first_batch = True
     stop_signals = ["Gap", "=", "eV", "Convergence", "criterion"]
+    ncol_ref = len(readlin[index_line].split())
     while True:#loop over blocks
-        ncol = len(readlin[index_line].split())
-        
-        if len(readlin[index_line].split()) != ncol \
-        or any(stop in readlin[index_line].split() for stop in stop_signals) \
-        or not readlin[index_line].split()[0].isdigit():#TODO: not strict enough!
+        index_ls = readlin[index_line].split()
+        ncol = len(index_ls)
+        #if len(index_ls) != ncol \
+        if (ncol > ncol_ref or ncol == 0) \
+        or any(stop in index_ls for stop in stop_signals):
+            break
+        if not index_ls[0].isdigit():
             break
         # adding rows scheme -> take line split as is
         j = 0
         if cols > 0:
             first_batch = False
         while True: #loop over lines in one block
-            if len(readlin[index_line+j+1].split()) != ncol+1 \
-            or not readlin[index_line+j+1].split()[0].isdigit() \
-            or any(stop in readlin[index_line+j+1].split() for stop in stop_signals):
+            line_split = readlin[index_line+j+1].split()
+            if len(line_split) != ncol+1 \
+            or any(stop in line_split for stop in stop_signals):
+                break
+            if not line_split[0].isdigit():
                 break
             if first_batch:
                 matrix.append([])
-            matrix[j] += list(map(float, readlin[index_line+j+1].split()[1:]))
+            matrix[j] += list(map(float, line_split[1:]))
             j += 1
         index_line += j+1#update index line
         cols += ncol#update total number of columns processed
@@ -223,7 +228,8 @@ class SCF(QCMethod):
                       "overlap_matrix" : " Overlap Matrix",
                       "orthonorm_matrix" : " Orthonormalization Matrix",
                       "alpha_density_matrix" : " Alpha Density Matrix",
-                      "mo_coefficients_r" : "RESTRICTED (RHF) MOLECULAR ORBITAL COEFFICIENTS"}
+                      "mo_coefficients_r" : "RESTRICTED (RHF) MOLECULAR ORBITAL COEFFICIENTS",
+                      "multipole_op" : "Multipole Matrix "}
     
     def scf_energy(self, l_index, data):
         """ Get Hartree-Fock energy [a.u.] from scfman """
@@ -285,7 +291,13 @@ class SCF(QCMethod):
         mLogger.info("{0:} molecular orbital coefficients".format(C.shape[0]),
                      extra={"Parsed":V.mo_coefficients})
         return C
-        
+
+    def multipole_op(self, i, data):
+        """ Parse Multipole matrix (x,x,x)."""
+        self.add_variable(self.func_name(), V.multipole_operator)
+        M = parse_symmetric_matrix(data, i)
+        mLogger.info("Multipole matrix", extra={"Parsed": V.multipole_operator})
+        return M
 
 class ADC(QCMethod):
     """ Parse adcman related quantities """
