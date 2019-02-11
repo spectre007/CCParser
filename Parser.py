@@ -1,40 +1,44 @@
+import importlib as il
+import os.path
+import inspect
+import re
+import logging
+import json
 from .ParserData import Struct
 from .ParserData import ParseContainer
 from .ParserData import StructEncoder
 from .QCBase import GenFormatter, VarNames as V
-import importlib as il
-import os.path, inspect
-import re
-import logging
-import json
 
 class Parser(object):
-    def __init__(self, output, *, software=None, toConsole=True,
-                 toFile=False, log_file="CCParser.log", json=False,
+    def __init__(self, output, *, software=None, to_console=True,
+                 to_file=False, log_file="CCParser.log", to_json=False,
                  json_file="CCParser.json"):#cf. PEP-3102
         """ Parser constructor.
-        
+
         Parameters
         ----------
         output : string
             Output filename.
         software : string
             Name of quantum chemistry software suite (default: None).
-        toConsole : bool
+        to_console : bool
             Whether to print log output to screen (default: True).
-        toFile : bool
+        to_file : bool
             Whether to write log output to file (default: False).
-        logname : string
+        log_file : string
             Name of output log file (default: ``CCParser.log``).
-        
+        to_json : bool
+            Whether to dump CCParser.results to JSON file.
+        json_file : string
+            Name of JSON output file.
         """
         self.f_output = output
         self.logger = logging.getLogger("CCParser")
-        self.toConsole = toConsole
-        self.toFile = toFile
+        self.to_console = to_console
+        self.to_file = to_file
         self.logname = log_file
         self.setupLogger()
-        
+
         if software != None:
             self.software = software
         else:
@@ -44,10 +48,9 @@ class Parser(object):
         self.output_basename = os.path.basename(output)
         self.read_output()# read output to memory
         self.load_methods()# software dependent import
-        
         self.results = Struct()# Set up container
         self.logger.warning("CCParser starts...")
-        for i,line in enumerate(self.rawData):
+        for i, line in enumerate(self.rawData):
             for mthd in self.methods:
 #                match, key = self.canParse(line, mthd)
                 match, keys = self.canParse(line, mthd)
@@ -67,23 +70,21 @@ class Parser(object):
             setattr(self.results, V.has_finished, container)
             self.logger.warning("Output indicates abnormal exit. Added "+
                                 "[results.has_finished] = False")
-        
-        if json:
+        if to_json:
             self.dump_json(fname=json_file)
         self.logger.warning("CCParser has finished.")
         self.loggerCleanUp()
-
 
     def read_output(self):
         """ Read in output file """
         with open(self.f_output, "r") as f:
             self.rawData = f.readlines()
-    
+
     def read_input(self, f_input):
         """ (Optional) Read input file """
         with open(f_input) as n:
             self.rawData.insert(0, n.readlines())
-            
+
     def canParse(self, line, mthd):
         """ Check if line is parsable """
         found = False
@@ -99,18 +100,17 @@ class Parser(object):
                     found = True
                     keys.append(key)
 #                    return found, key
-        if found == False:
+        if not found:
             return found, None
         else:
             return found, keys
 
-            
     def get_quantity(self, i, key, mthd):
         """ Call function of method class. This is the actual parsing. """
         method_func = getattr(mthd, key)# needs to be method not list of methods
         result = method_func(i, self.rawData)
         return result
-    
+
     def load_methods(self):
         """ Load correct module which contains parsing information
         based on which software was specified. """
@@ -129,12 +129,12 @@ class Parser(object):
             m_package = ".Psi4"
         else:
             raise ValueError("The specified software is misspelled or not implemented yet!")
-        global m
-#        m = il.import_module(m_package+".methods",package="CCParser")
+        #global m
         m = il.import_module(m_package, package="CCParser")
-        self.method_names = [k[0] for k in inspect.getmembers(m,
-                             inspect.isclass) if k[1].__module__ == "CCParser"+m_package]
-        self.methods = [getattr(m, mname)() for mname in self.method_names]#this also instantiates!!
+        self.method_names = [k[0] for k in inspect.getmembers(m,\
+            inspect.isclass) if k[1].__module__ == "CCParser"+m_package]
+        # this also instantiates!!
+        self.methods = [getattr(m, mname)() for mname in self.method_names]
 
     def setupLogger(self):
         """Initiate logger for CCParser.Parser"""
@@ -142,34 +142,33 @@ class Parser(object):
         self.logger.setLevel(logging.INFO)
         # Set up Formatter
 #        p_fmt = logging.Formatter("[results.%(Parsed)s] Parsed %(message)s")
-        # TODO: change number of loggers
+#
         # This is abusing the Formatter class a bit, but I wanted to avoid
         # one Logger for every format, maybe I'll change this in the future.
         p_fmt = GenFormatter(
-                {logging.INFO: "[results.%(Parsed)s] Parsed %(message)s",
-                 logging.WARNING: "==[%(asctime)s]== %(message)s",
-                 logging.ERROR: "%(message)s"})
+            {logging.INFO: "[results.%(Parsed)s] Parsed %(message)s",
+             logging.WARNING: "==[%(asctime)s]== %(message)s",
+             logging.ERROR: "%(message)s"})
         # Set up Handlers
-        if self.toFile:
+        if self.to_file:
             fh = logging.FileHandler(self.logname)
             fh.setLevel(logging.INFO)
             fh.setFormatter(p_fmt)
             self.logger.addHandler(fh)
-        if self.toConsole:
+        if self.to_console:
             ch = logging.StreamHandler()
             ch.setLevel(logging.DEBUG)
             ch.setFormatter(p_fmt)
             self.logger.addHandler(ch)
         # No output in case both booleans are False
-        if not any([self.toConsole, self.toFile]):
+        if not any([self.to_console, self.to_file]):
             self.logger.setLevel(logging.CRITICAL)
-            
+
     def loggerCleanUp(self):
         """In order to avoid multiplying handlers. """
         for i in range(len(self.logger.handlers)):
             self.logger.handlers.pop()
-        
-        
+
     def set_missing_keys(self):
         """Set default values for keywords that have not been found."""
         # use V.fde_expansion as an indicaotr whether or not an FDE calculation
@@ -185,15 +184,14 @@ class Parser(object):
 #                setattr(self.results, V.fde_isB_imported, container)
 #                self.logger.info("whether FDET program imports rhoB",
 #                     extra={"Parsed":V.fde_isB_imported})
-        
         if not hasattr(self.results, V.has_finished):
             container = ParseContainer(0, False)
             setattr(self.results, V.has_finished, container)
             self.logger.warning("Output indicates abnormal exit.")
-            
+
     def dump_json(self, fname="CCParser.json"):
         """Dumps contens of the CCParser.results container to a JSON file.
-        
+
         Parameters
         ----------
         fname : str
@@ -202,7 +200,6 @@ class Parser(object):
         with open(fname, "w") as pdump:
             json.dump(self.results, pdump, cls=StructEncoder)
         self.logger.warning("Dumped CCParser.results to JSON file.")
-        
+
     def find_software(self):
         pass
-    
