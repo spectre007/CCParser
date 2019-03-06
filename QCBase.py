@@ -56,7 +56,7 @@ class VarNames(object):
     # -- Issues & Warnings --
     has_converged = "state_cnvgd"
     
-    # -- Frozen-Density Embedding
+    # -- Frozen-Density Embedding --
     fde_omega_ref = "fde_omega_ref"
     fde_omega_I = "fde_omega_I"
     fde_trust = "fde_trust"
@@ -92,7 +92,13 @@ class VarNames(object):
     fde_BnucA = "BnucA"#rhoB * vA
     fde_VNN   = "V_AB"
     
-    
+    # -- electronic coupling --
+    adia_center  = "adiabatic_center"
+    adia_ss_dist = "adiabatic_ssd"
+    adia_hamilt  = "adiabatic_H"
+    dia_center   = "diabatic_center"
+    dia_ss_dist  = "diabatic_ssd"
+    dia_hamilt   = "diabatic_H"
     
     
     

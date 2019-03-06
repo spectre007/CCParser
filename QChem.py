@@ -10,6 +10,7 @@ import numpy as np
 import logging
 from .ParserData import MolecularOrbitals, Amplitudes
 from .QCBase import QCMethod, VarNames as V
+from .ParserTools import is_square
 
 # create module logger
 mLogger = logging.getLogger("CCParser.QChem")
@@ -477,21 +478,13 @@ class FDE_ADC(QCMethod):
         super().__init__()# necessary for every derived class of QCMethod
         self.hooks = {"omega_ref": "FDE control parameter",
                       "omega_I": "Omega(FDE)",
-#                      "electrostatic": "rho_A <-> rho_B",
-#                      "non_electrostatic": "Non-Electrostatic Interactions",
                       "trust": "lambda(FDE)",
                       "delta_lin": "Delta_Lin:",
                       "timing": "FDE timings",
-#                      "scf_vemb_components" : "Integrated electrostatic embedding",
-#                      "scf_vemb": "Integrated total embedding potential",
                       "expansion": "FDE-Expansion",
                       "method_Aref": "Method to generate rhoA_ref:",
                       "method_B": "Method to generate rhoB:",
                       "method_B_legacy": "Environment method",
-#                      "import_A": "to be imported from file 'Densmat_A.txt'",
-#                      "import_B": "to be imported from file 'Densmat_B.txt'",
-#                      "import_A_legacy": "Importing Rho_A from file.",
-#                      "import_B_legacy": "Importing Rho_B from file.",
                       "tfunc": "Embedding Pot. T functional",
                       "xcfunc": "Embedding Pot. XC functional",
                       "xfunc" : "Embedding Pot. X functional",
@@ -540,46 +533,6 @@ class FDE_ADC(QCMethod):
                      extra={"Parsed":V.fde_delta_lin})
         return float(data[i].split()[1])
     
-    
-#    def electrostatic(self, l_index, data):
-#        """ Parse state-specific electrostatic interactions [a.u.] from FDE summary
-#        all at once. The order is rho_A<->rho_B, rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B
-#        
-#        Returns
-#        -------
-#        list
-#            A list containing electrostatic in the same order as in the output (see above) """
-#        self.add_variable(self.func_name(), V.fde_electrostatic)
-#        elstat = []
-#        for i in range(4):
-#            elstat.append(float(data[l_index+i].split()[3]))
-##            self.print_parsed(V.fde_electrostatic, "FDE electrostatic contributions [rho_A<->rho_B, rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]")
-#        mLogger.info("FDE electrostatic contributions [rho_A<->rho_B, \
-#rho_A<->Nuc_B, rho_B<->Nuc_A, Nuc_A<->Nuc_B]", extra={"Parsed":V.fde_electrostatic})
-#        return elstat
-#        
-#    def non_electrostatic(self, i, data):
-#        """Parses non-electrostatic components of the embedding potential
-#        for the ground and excited states.
-#        
-#        Returns
-#        -------
-#        list
-#            List of the components in a.u. in the following order:
-#            non-additive E_xc, non-additive T_s, integrated v_xc nad, integrated v_T nad
-#            """
-#        self.add_variable(self.func_name(), V.fde_non_electrostatic)
-#        l=[]
-#        mLogger.info("non-electrostatic embedding potential components",
-#                     extra={"Parsed":V.fde_non_electrostatic})
-#        
-#        l.append(float(data[i+2].split()[-2]))#non-additive E_xc
-#        l.append(float(data[i+3].split()[-2]))#non-additive T_s
-#        l.append(float(data[i+5].split()[-2]))#integrated v_xc nad
-#        l.append(float(data[i+6].split()[-2]))#integrated v_T nad
-#        
-#        return l
-    
     def timing(self, l_index, data):
         """ Parses FDE timings from the FDE summary.
         The general order of appearance is FDE-method, RhoA_ref, RhoB, v_emb,
@@ -609,46 +562,6 @@ class FDE_ADC(QCMethod):
 
         mLogger.info("final FDE timings", extra={"Parsed":V.fde_timing})
         return timings
-    
-#    def scf_vemb_components(self, l_index, data):
-#        """ Parses the components of the embedding potential during the SCF in [a.u.]
-#        
-#        Parses either two or six components based on the selected print level.
-#        
-#        Returns
-#        -------
-#        list
-#            List of energy components in the following order:
-#                integrated electrostatic potential, integrated non-el. potential
-#                (integrated coulomb potential, integrated nuclear potential
-#                integrated non-add. XC potential, integrated non-add. kinetic potential)"""
-#        self.add_variable(self.func_name(), V.fde_scf_vemb_components)
-#        l = []
-#        mLogger.info("HF expectation value of the embedding potential components",
-#                     extra={"Parsed":V.fde_scf_vemb_components})
-#        l.append(float(data[l_index].split()[-1]))#elstat
-#        if "nuclear potential" in data[l_index-1]:
-#            l.append(float(data[l_index+3].split()[-1]))#non-elstat
-#            l.append(float(data[l_index-2].split()[-1]))#coulomb
-#            l.append(float(data[l_index-1].split()[-1]))#nuclear
-#            l.append(float(data[l_index+1].split()[-1]))#nad XC
-#            l.append(float(data[l_index+2].split()[-1]))#nad T
-#        else:
-#            l.append(float(data[l_index+1].split()[-1]))
-#        return l
-#    
-#    def scf_vemb(self, l_index, data):
-#        """ Fetches HF expectation value of the embedding potential in [a.u.].
-#        
-#        Returns
-#        -------
-#        float
-#            Energy in a.u.
-#        """
-#        self.add_variable(self.func_name(), V.fde_scf_vemb)
-#        mLogger.info("HF expectation value of the embedding potential",
-#                     extra={"Parsed":V.fde_scf_vemb})
-#        return float(data[l_index].split()[4])
     
     def expansion(self, l_index, data):
         """ Parses FDE-Expansion type [ME, SE, RADM]
@@ -716,62 +629,6 @@ class FDE_ADC(QCMethod):
         mLogger.info("FDET Method for rhoB", extra={"Parsed":V.fde_method_rhoB})
         return data[i].split()[-1]
         
-#    def import_A(self, i, data):
-#        """Determine whether Rho_A is imported or not.
-#        
-#        Returns
-#        -------
-#        bool
-#            Is Rho_A imported?
-#        """
-#        self.add_variable(self.func_name(), V.fde_isA_imported)
-#        mLogger.info("whether FDET program imports rhoA_ref",
-#                     extra={"Parsed":V.fde_isA_imported})
-#        return True
-#    
-#    def import_B(self, i, data):
-#        """ Determine whether Rho_B is imported or not.
-#        
-#        Also needs to be called at the end in order to yield "False"!!
-#        
-#        Returns
-#        -------
-#        bool
-#            Is Rho_B imported?
-#        """
-#        self.add_variable(self.func_name(), V.fde_isB_imported)
-#        mLogger.info("whether FDET program imports rhoB",
-#                     extra={"Parsed":V.fde_isB_imported})
-#        return True
-#    
-#    def import_A_legacy(self, i, data):
-#        """ Determine whether Rho_A is imported or not (legacy).
-#        
-#        Returns
-#        -------
-#        bool
-#            Is Rho_A imported?
-#        """
-#        self.add_variable(self.func_name(), V.fde_isA_imported)
-#        mLogger.info("whether FDET program imports rhoA_ref",
-#                     extra={"Parsed":V.fde_isA_imported})
-#        return True
-#    
-#    def import_B_legacy(self, i, data):
-#        """ Determine whether Rho_B is imported or not (legacy).
-#        
-#        Also needs to be called at the end in order to yield "False"!!
-#        
-#        Returns
-#        -------
-#        bool
-#            Is Rho_B imported?
-#        """
-#        self.add_variable(self.func_name(), V.fde_isB_imported)
-#        mLogger.info("boolean for density import of Rho_B",
-#                     extra={"Parsed":V.fde_isB_imported})
-#        return True
-
     def tfunc(self, l_index, data):
         """ Determine what kinetic energy functional is used to construct
         the embedding potential.
@@ -1008,7 +865,7 @@ class FDE_ADC(QCMethod):
                      extra={"Parsed":V.fde_BnucA})
         return float(data[i].split()[-2])
     
-    def V_NA_NB(self, i , data):
+    def V_NA_NB(self, i, data):
         """Parses Coulomb repulsion of nuclei NucA and NucB.
         
         :math:`\\sum_{A}\\sum_{B} \\frac{Z_{A}Z_{B}}{|\\mathbf{R}_{A} -
@@ -1019,3 +876,116 @@ class FDE_ADC(QCMethod):
         mLogger.info("Coulomb repulsion of nucA-nucB",
                      extra={"Parsed":V.fde_VNN})
         return float(data[i].split()[-2])
+
+class CIS(QCMethod):
+    """ Parsing related to FDE-ADC implementation in Q-Chem """
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.hooks = {"exc_energies": (r"Excited state\s+(?P<state>\d+):\s*"
+            r"excitation energy \(eV\)\s*=\s*(?P<energy>[-+]?\d+\.\d+)"),
+            "adiabatic_center": (r"ADIABATIC CENTER\d+\s*LOCATIONS:.*"
+            r"Occ\sx\s+([-]?\d+\.\d+)\sy\s+([-]?\d+\.\d+)\sz\s+([-]?\d+\.\d+) "
+            r"Virt\sx\s+([-]?\d+\.\d+)\sy\s+([-]?\d+\.\d+)\sz\s+([-]?\d+\.\d+)"),
+            "adiabatic_ss_dist": (r"ADIABATIC:.*sum of square of distances.*"
+            r"Occ\s*(?P<occ>\d+\.\d+)\s*Virt\s*(?P<virt>\d+\.\d+)"),
+            "adiabatic_hamilt": "Printing H in adiabatic representation",
+            "diabatic_hamilt" : "Getting H in diabatic representation",
+            "diabatic_center": (r"^DIABATIC CENTER\d+\s*LOCATIONS:.*"
+            r"Occ\sx\s+([-]?\d+\.\d+)\sy\s+([-]?\d+\.\d+)\sz\s+([-]?\d+\.\d+) "
+            r"Virt\sx\s+([-]?\d+\.\d+)\sy\s+([-]?\d+\.\d+)\sz\s+([-]?\d+\.\d+)"),
+            "diabatic_ss_dist": (r"^DIABATIC:.*sum of square of distances.*"
+            r"Occ\s*(?P<occ>\d+\.\d+)\s*Virt\s*(?P<virt>\d+\.\d+)")}
+
+
+    def exc_energies(self, i, data):
+        """ Parse excitation energies [eV] """
+        self.add_variable(self.func_name(), V.exc_energy_rel)
+        mLogger.info("relative CIS excitation energy/-ies [eV]",
+                     extra={"Parsed": V.exc_energy_rel})
+        match = re.search(self.hooks["exc_energies"], data[i])
+        if match:
+            return float(match.group("energy"))
+
+    def adiabatic_center(self, i, data):
+        """ Parse adiabatic center """
+        self.add_variable(self.func_name(), V.adia_center)
+        mLogger.info("adiabatic center locations",
+                     extra={"Parsed": V.adia_center})
+        match = re.search(self.hooks["adiabatic_center"], data[i])
+        if match:
+            all_coord = [float(c) for c in match.groups()]
+            return [all_coord[:3], all_coord[3:]]
+
+    def adiabatic_ss_dist(self, i, data):
+        """ Parse sum of square distances to other states """
+        self.add_variable(self.func_name(), V.adia_ss_dist)
+        mLogger.info("adiabatic sum of squares of distance",
+                     extra={"Parsed": V.adia_ss_dist})
+        match = re.search(self.hooks[self.func_name()], data[i])
+        if match:
+            return [float(match.group("occ")), float(match.group("virt"))]
+
+    def adiabatic_hamilt(self, i, data):
+        """ Parse the adiabatic representation of the Hamiltonian """
+        self.add_variable(self.func_name(), V.adia_hamilt)
+        mLogger.info("adiabatic representation of the Hamiltonian",
+                extra={"Parsed": V.adia_hamilt})
+        j = 1
+        H = []
+        while True:
+            ls = data[i+j].split()
+            if not "showmatrix" in data[i+j]:
+                break
+            elif not "=" in data[i+j]:
+                break
+            elif len(ls) == 0:
+                break
+            H.append(float(ls[-1]))
+            j += 1
+        H = np.asarray(H)
+        if is_square(len(H)):
+            n = int(np.sqrt(len(H)))
+            H = H.reshape((n,n))
+        return H
+            
+    def diabatic_hamilt(self, i, data):
+        """ Parse the diabatic representation of the Hamiltonian """
+        self.add_variable(self.func_name(), V.dia_hamilt)
+        mLogger.info("diabatic representation of the Hamiltonian",
+                extra={"Parsed": V.dia_hamilt})
+        j = 1
+        H = []
+        while True:
+            ls = data[i+j].split()
+            if not "showmatrix" in data[i+j]:
+                break
+            elif not "=" in data[i+j]:
+                break
+            elif len(ls) == 0:
+                break
+            H.append(float(ls[-1]))
+            j += 1
+        H = np.asarray(H)
+        if is_square(len(H)):
+            n = int(np.sqrt(len(H)))
+            H = H.reshape((n,n))
+        return H
+
+    def diabatic_center(self, i, data):
+        """ Parse diabatic center """
+        self.add_variable(self.func_name(), V.dia_center)
+        mLogger.info("adiabatic center locations",
+                     extra={"Parsed": V.dia_center})
+        match = re.search(self.hooks[self.func_name()], data[i])
+        if match:
+            all_coord = [float(c) for c in match.groups()]
+            return [all_coord[:3], all_coord[3:]]
+
+    def diabatic_ss_dist(self, i, data):
+        """ Parse sum of square distances to other states """
+        self.add_variable(self.func_name(), V.dia_ss_dist)
+        mLogger.info("diabatic sum of squares of distance",
+                     extra={"Parsed": V.dia_ss_dist})
+        match = re.search(self.hooks[self.func_name()], data[i])
+        if match:
+            return [float(match.group("occ")), float(match.group("virt"))]
