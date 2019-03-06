@@ -11,7 +11,7 @@ import numpy as np
 import logging
 from .ParserData import MolecularOrbitals, Amplitudes
 from .QCBase import QCMethod, VarNames as V
-from .ParserTools import isfloat
+from .ParserTools import is_float
 
 # create module logger
 mLogger = logging.getLogger("CCParser.Gaussian")
@@ -42,7 +42,7 @@ def parse_tddft_list(i, data, columns=[0], asmatrix=False):
         ncol = len(line)
         if ncol == 0:
             break
-        elif not isfloat(line[0]):
+        elif not is_float(line[0]):
             break
         the_list.append(list(map(float, [line[i] for i in columns])))
         index_line += 1
