@@ -125,6 +125,14 @@ def parse_AO_matrix(readlin, n, asmatrix=True):
     else:
         return matrix
 
+def get_inline_vec(line, asarray=True):
+    """ Extracts a vector of the format
+    '[ 1.000, 2.000, 3.000]' from the current line"""
+    pattern = r"[+-]?\d+\.\d*"
+    match = re.findall(pattern, line)
+    match = list(map(float, match))
+    if len(match) > 0:
+        return np.asarray(match)
 
 class General(QCMethod):
     """Parse general information like basis set, number of atoms, etc. """
@@ -304,7 +312,6 @@ class ADC(QCMethod):
     """ Parse adcman related quantities """
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
-        #self.type = ["Excited States","Perturbation Theory"]
         self.hooks = {"scf_energy": "HF Summary",
                       "mp_energy": r"(RI-)?MP\([2-3]\) Summary",
                       "mp_correction": (r"(MP e|E)nergy contribution:\s+"
@@ -314,40 +321,48 @@ class ADC(QCMethod):
                       "has_converged" : r"Excited state\s+\d+\s+\(.*?\)\s+\[(.*?)\]",
                       "amplitudes": "Important amplitudes:",
                       "total_dipole" : "Total dipole [Debye]",
-                      "dipole_moment" : r"Dip\. moment \[a\.u\.\]:\s+\[\s+(?P<x>-?\d+\.\d+),\s+(?P<y>-?\d+\.\d+),\s+(?P<z>-?\d+\.\d+)\]" ,
-                      "diff_dens_anl": "Exciton analysis of the difference density matrix",
-                      "mulliken_adc": "Mulliken Population Analysis"}
+                      "dipole_moment" : (r"Dip\. moment \[a\.u\.\]:\s+\[\s+(?P<x>-?\d+\.\d+),"
+                      r"\s+(?P<y>-?\d+\.\d+),\s+(?P<z>-?\d+\.\d+)\]"),
+                      "mulliken_adc": "Mulliken Population Analysis",
+                      "diff_detach_mean": "Exciton analysis of the difference density matrix",
+                      "diff_attach_mean": "Exciton analysis of the difference density matrix",
+                      "diff_da_dist": "Exciton analysis of the difference density matrix",
+                      "diff_detach_size": "Exciton analysis of the difference density matrix",
+                      "diff_attach_size": "Exciton analysis of the difference density matrix",
+                      "diff_detach_mom": "Exciton analysis of the difference density matrix",
+                      "diff_attach_mom": "Exciton analysis of the difference density matrix"}
+                      #"diff_eh_sep": "Exciton analysis of the difference density matrix",
+                      #"trans_mean_hole": "Exciton analysis of the transition density matrix"}
 
-    def exc_energies(self, l_index, data):
+    def exc_energies(self, i, data):
         """ Parse excitation energies [eV] """
         self.add_variable(self.func_name(), V.exc_energy_rel)
         mLogger.info("relative ADC(x) excitation energy/-ies [eV]",
                      extra={"Parsed":V.exc_energy_rel})
-        return float(data[l_index].split()[-2])
+        return float(data[i].split()[-2])
         
-    def osc_strength(self, l_index, data):
+    def osc_strength(self, i, data):
         """ Parse oscillator strengths """
         self.add_variable(self.func_name(), V.osc_str)
         mLogger.info("ADC oscillator strength/s",
                      extra={"Parsed":V.osc_str})
-        return float(data[l_index].split()[-1])
+        return float(data[i].split()[-1])
         
-    def scf_energy(self, l_index, data):
+    def scf_energy(self, i, data):
         """ Parse SCF energy [a.u.] from adcman """
         self.add_variable(self.func_name(), V.scf_energy)
         mLogger.info("SCF energy in [a.u.] (adcman)",
                      extra={"Parsed":V.scf_energy})
-        return float(data[l_index+2].split()[-2])
+        return float(data[i+2].split()[-2])
         
-    def mp_energy(self, l_index, data):
+    def mp_energy(self, i, data):
         """ Parse MP(x) reference state energy [a.u.] from adcman """
         self.add_variable(self.func_name(), V.mp_energy)
-        match = re.search(self.hooks["mp_energy"], data[l_index])
+        match = re.search(self.hooks["mp_energy"], data[i])
         if match:
-#            self.print_parsed(V.mp_energy, "MP(x) energy in [a.u.] (adcman)")
             mLogger.info("MP(x) energy in [a.u.] (adcman)",
                          extra={"Parsed":V.mp_energy})
-            return float(data[l_index+3].split()[2])
+            return float(data[i+3].split()[2])
     
     def mp_correction(self, i, data):
         """Parse MP(x) energy contribution in [a.u.] from adcman."""
@@ -359,17 +374,16 @@ class ADC(QCMethod):
             return float(match.group("E"))
          
         
-    def has_converged(self, l_index, data):
+    def has_converged(self, i, data):
         """ Parse if state has converged. """
         self.add_variable(self.func_name(), V.has_converged)
-        match = re.search(self.hooks["has_converged"], data[l_index])
+        match = re.search(self.hooks["has_converged"], data[i])
         if match:
-#            self.print_parsed(V.has_converged, "if states converged (adcman)")
             mLogger.info("if states converged (adcman)",
                          extra={"Parsed":V.has_converged})
-            return True if match.group(1) == "converged" else False
+            return match.group(1) == "converged"
 
-    def amplitudes(self, l_index, data):
+    def amplitudes(self, i, data):
         """ Parse occ -> virt amplitudes """
         self.add_variable(self.func_name(), V.amplitudes)
         try:
@@ -384,8 +398,8 @@ class ADC(QCMethod):
              srch = re.search
              have_regex = False
     
-        idx = l_index+3
-        amplist = []
+        idx = i+3
+        amplist = []# Format: [[occ_i, occ_j,..., virt_a, virt_b,..., ampl], ...]
         while "--------" not in data[idx]:
             match = srch(expr, data[idx])
             if match:
@@ -399,7 +413,7 @@ class ADC(QCMethod):
         mLogger.info("ADC amplitudes", extra={"Parsed":V.amplitudes})
         return Amplitudes.from_list(amplist, factor=2.0)
 
-    def total_dipole(self, l_index, data):
+    def total_dipole(self, i, data):
         """ Parse total dipole moment [Debye] for HF, MP2 and ADC states
         
         Returns
@@ -409,9 +423,9 @@ class ADC(QCMethod):
         self.add_variable(self.func_name(), V.total_dipole)
         mLogger.info("Total dipole moment [Debye]",
                      extra={"Parsed":V.total_dipole})
-        return float(data[l_index].split()[-1])
+        return float(data[i].split()[-1])
     
-    def dipole_moment(self, l_index, data):
+    def dipole_moment(self, i, data):
         """ Parse dipole moment components in [a.u.] 
         
         Returns
@@ -420,43 +434,134 @@ class ADC(QCMethod):
             Dipole moment in [a.u.]
         """
         self.add_variable(self.func_name(), V.dipole_moment)
-        match = re.search(self.hooks[self.func_name()], data[l_index])
+        match = re.search(self.hooks[self.func_name()], data[i])
         if match:
             mLogger.info("Dipole moment [a.u.]",
                          extra={"Parsed":V.dipole_moment})
             g = list(map(float,match.groups()))
             return np.asarray(g)
             
-    
-    def diff_dens_anl(self, l_index, data):
-        """ Parse difference density matrix analysis block """
-        self.add_variable(self.func_name(), V.diff_dens_anl)
-        return 0
-#        if self.hooks[S"diff_dens_anl"] in data[l_index]:
-#            d = {}
-#            p = [r"\[(-?\d+\.\d+), (-?\d+\.\d+), (-?\d+\.\d+)\]",
-#                 r"(-?\d+\.\d+)"]
-#            pattern = "|".join(p)
-#            i = 1
-#            s = ""
-#            while True:
-#                if "Transition density matrix analysis:" in data[l_index+i]:
-#                    print("diff_dens_anl: combined ",i," lines.")
-#                    break
-#                else:
-#                  s += data[l_index+i]
-#                  i += 1
-#            
-#            # check if f has list elements
-##            d["hole_pos"] = f[0]
-##            d["elec_pos"] = f[1]
-##            d["eh_dist"] = f[2]
-##            d["hole_size"] = f[3]
-##            d["hole_comp"] = f[4]
-##            d["elec_size"] = f[5]
-##            d["elec_comp"] = f[6]
-#            return f
-        
+    def diff_detach_mean(self, i, data):
+        """ Parse mean position of detachment density [Ang] """
+        self.add_variable(self.func_name(), V.diff_detach_mean)
+        mLogger.info("mean position of detachment density [Ang]",
+                extra={"Parsed": V.diff_detach_mean})
+        j = 1
+        vec = []
+        while True:
+            ls = data[i+j].split()
+            if len(ls) == 0:
+                break
+            elif "<r_h> [Ang]:" in data[i+j]:
+                vec = get_inline_vec(data[i+j])
+                break
+            j += 1
+        return vec
+
+    def diff_attach_mean(self, i, data):
+        """ Parse mean position of attachment density [Ang] """
+        self.add_variable(self.func_name(), V.diff_attach_mean)
+        mLogger.info("mean position of attachment density [Ang]",
+                extra={"Parsed": V.diff_attach_mean})
+        j = 1
+        vec = []
+        while True:
+            ls = data[i+j].split()
+            if len(ls) == 0:
+                break
+            elif "<r_e> [Ang]:" in data[i+j]:
+                vec = get_inline_vec(data[i+j])
+                break
+            j += 1
+        return vec
+
+    def diff_da_dist(self, i, data):
+        """ Parse linear D/A distance [Ang] """
+        self.add_variable(self.func_name(), V.diff_da_dist)
+        mLogger.info("linear D/A distance [Ang]",
+                extra={"Parsed": V.diff_da_dist})
+        j = 1
+        dist = 0.0
+        while True:
+            ls = data[i+j].split()
+            if len(ls) == 0:
+                break
+            elif "|<r_e - r_h>| [Ang]:" in data[i+j]:
+                dist = float(ls[-1])
+                break
+            j += 1
+        return dist
+
+    def diff_detach_size(self, i, data):
+        """ Parse detachment size [Ang] """
+        self.add_variable(self.func_name(), V.diff_detach_size)
+        mLogger.info("RMS size of detachment density [Ang]",
+                extra={"Parsed": V.diff_detach_size})
+        j = 1
+        size = 0.0
+        while True:
+            ls = data[i+j].split()
+            if len(ls) == 0:
+                break
+            elif "Hole size [Ang]:" in data[i+j]:
+                size = ls[-1]
+                break
+            j += 1
+        return size
+
+    def diff_attach_size(self, i, data):
+        """ Parse attachment size [Ang] """
+        self.add_variable(self.func_name(), V.diff_attach_size)
+        mLogger.info("RMS size of attachment density [Ang]",
+                extra={"Parsed": V.diff_attach_size})
+        j = 1
+        size = 0.0
+        while True:
+            ls = data[i+j].split()
+            if len(ls) == 0:
+                break
+            elif "Electron size [Ang]:" in data[i+j]:
+                size = ls[-1]
+                break
+            j += 1
+        return size
+
+    def diff_detach_mom(self, i, data):
+        """ Parse cartesian components of detachment size [Ang] """
+        self.add_variable(self.func_name(), V.diff_detach_mom)
+        mLogger.info("cartesian components of detachment size [Ang]",
+                extra={"Parsed": V.diff_detach_mom})
+        j = 1
+        vec = []
+        while True:
+            ls = data[i+j].split()
+            if len(ls) == 0:
+                break
+            elif "Hole size [Ang]:" in data[i+j] and \
+            "Cartesian components [Ang]:" in data[i+j+1]:
+                vec = get_inline_vec(data[i+j+1])
+                break
+            j += 1
+        return vec
+
+    def diff_attach_mom(self, i, data):
+        """ Parse cartesian components of attachment size [Ang] """
+        self.add_variable(self.func_name(), V.diff_attach_mom)
+        mLogger.info("cartesian components of attachment size [Ang]",
+                extra={"Parsed": V.diff_attach_mom})
+        j = 1
+        vec = []
+        while True:
+            ls = data[i+j].split()
+            if len(ls) == 0:
+                break
+            elif "Electron size [Ang]:" in data[i+j] and \
+            "Cartesian components [Ang]:" in data[i+j+1]:
+                vec = get_inline_vec(data[i+j+1])
+                break
+            j += 1
+        return vec
+
     def mulliken_adc(self, l_index, data):
         """ Parse MP(x) and ADC(x) mulliken charges """
         self.add_variable(self.func_name(), V.mulliken)

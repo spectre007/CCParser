@@ -28,8 +28,6 @@ class VarNames(object):
     # -- Excited States --
     osc_str = "osc_str"
     amplitudes = "ampl"
-    diff_dens_anl = "diff_dens_anl"
-    trans_dens_anl = "trans_dens_anl"
     total_dipole = "tot_dip"
     dipole_moment = "dip_moment"
     transition_dipole = "trans_dip"
@@ -100,9 +98,14 @@ class VarNames(object):
     dia_ss_dist  = "diabatic_ssd"
     dia_hamilt   = "diabatic_H"
     
-    
-    
-
+    # -- wave function analysis --
+    diff_attach_mean = "diff_attach_mean"
+    diff_detach_mean = "diff_detach_mean"
+    diff_da_dist     = "diff_da_dist"
+    diff_attach_size = "diff_attach_size"
+    diff_detach_size = "diff_detach_size"
+    diff_attach_mom  = "diff_attach_mom"
+    diff_detach_mom  = "diff_detach_mom"
 
 class QCMethod(object):
     """ Base class for Quantum Chemistry methods """
