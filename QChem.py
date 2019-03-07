@@ -10,6 +10,7 @@ import numpy as np
 import logging
 from .ParserData import MolecularOrbitals, Amplitudes
 from .QCBase import QCMethod, VarNames as V
+from .QCBase import var_tag
 from .ParserTools import is_square
 
 # create module logger
@@ -179,89 +180,94 @@ class General(QCMethod):
                 "has_finished": "Thank you very much for using Q-Chem.",
                 "basis_name": "Requested basis set is"}
 
+    @var_tag(V.version)
     def version(self, i, data):
         """ Extract version number of Q-Chem """
-        self.add_variable(self.func_name(), V.version)
+        #self.add_variable(self.func_name(), V.version)
         mLogger.info("Q-Chem version number", extra={"Parsed": V.version})
         match = re.search(self.hooks['version'], data[i])
         if match:
             return match.group(1)
 
-    def xyz_coordinates(self, l_index, data):
+    @var_tag(V.xyz_coordinates)
+    def xyz_coordinates(self, i, data):
         """ Get XYZ coordinates """
-        self.add_variable(self.func_name(), V.xyz_coordinates)
+        mLogger.info("XYZ coordinates", extra={"Parsed":V.xyz_coordinates})
+        # self.add_variable(self.func_name(), V.xyz_coordinates)
         xyz_dat, n = [], 0
         while True:
-            if "------------" in data[l_index+3+n]:
+            if "------------" in data[i+3+n]:
                 break
             else:
-                xyz_dat.append(data[l_index+3+n].split()[1:])
+                xyz_dat.append(data[i+3+n].split()[1:])
                 n += 1
         xyz_dat = [[x[0]]+list(map(float,x[1:])) for x in xyz_dat]
-        mLogger.info("XYZ coordinates", extra={"Parsed":V.xyz_coordinates})
         return xyz_dat
-
-    def nuc_rep(self, l_index, data):
+    
+    @var_tag(V.nuc_repulsion)
+    def nuc_rep(self, i, data):
         """ Get nuclear repulsion energy [a.u.] """
-        self.add_variable(self.func_name(), V.nuc_repulsion)
+        # self.add_variable(self.func_name(), V.nuc_repulsion)
         mLogger.info("nuclear repulsion energy",
                      extra={"Parsed":V.nuc_repulsion})
-        return float(data[l_index].split()[-2])
-    
+        return float(data[i].split()[-2])
+
+    @var_tag(V.n_bas)
     def n_basis(self, i, data):
         """ Parse number of basis functions """
-        self.add_variable(self.func_name(), V.n_bas)
+        # self.add_variable(self.func_name(), V.n_bas)
         match = re.search(self.hooks["n_basis"], data[i])
         if match:
             mLogger.info("number of basis functions",
                          extra={"Parsed":V.n_bas})
             return int(match.group("bsf"))
-    
-    def mulliken(self, l_index, data):
+
+    @var_tag(V.mulliken)
+    def mulliken(self, i, data):
         """ Parse ground-state mulliken charges """
-        self.add_variable(self.func_name(), V.mulliken)
+        # self.add_variable(self.func_name(), V.mulliken)
         chg, n = [], 0
         while True:
-            if "-------" in data[l_index+4+n]:
+            if "-------" in data[i+4+n]:
                 break
             else:
-                chg.append(data[l_index+4+n].split()[1:])
+                chg.append(data[i+4+n].split()[1:])
                 n += 1
         chg = [[x[0]]+[float(x[1])] for x in chg]
-#            self.print_parsed(V.mulliken, "Ground-State Mulliken charges")
         mLogger.info("Ground-State Mulliken charges",
                      extra={"Parsed":V.mulliken})
         return chg
-        
-    def chelpg(self, l_index, data):
+
+    @var_tag(V.chelpg)
+    def chelpg(self, i, data):
         """ Parse ground-state ChElPG charges """
-        self.add_variable(self.func_name(), V.chelpg)
+        # self.add_variable(self.func_name(), V.chelpg)
         chg, n = [], 0
         while True:
-            if "-------" in data[l_index+4+n]:
+            if "-------" in data[i+4+n]:
                 break
             else:
-                chg.append(data[l_index+4+n].split()[1:])
+                chg.append(data[i+4+n].split()[1:])
                 n += 1
         chg = [[x[0]]+[float(x[1])] for x in chg]
-#            self.print_parsed(V.chelpg, "Ground-State ChElPG charges")
         mLogger.info("Ground-State ChElPG charges", extra={"Parsed":V.chelpg})
         return chg
-    
+
+    @var_tag(V.has_finished)
     def has_finished(self, i, data):
         """ Parse final statement that indicates if Q-Chem finished
         without errors. """
-        self.add_variable(self.func_name(), V.has_finished)
+        # self.add_variable(self.func_name(), V.has_finished)
         mLogger.info("whether Q-Chem has finished successfully",
                      extra={"Parsed": V.has_finished})
         return True
-    
+
+    @var_tag(V.basis_name)
     def basis_name(self, i, data):
         """ Parse name of basis set. """
-        self.add_variable(self.func_name(), V.basis_name)
+        # self.add_variable(self.func_name(), V.basis_name)
         mLogger.info("basis set name", extra={"Parsed": V.basis_name})
-        if self.hooks[self.func_name()] in data[i]:
-            return data[i].split()[-1]
+        return data[i].split()[-1]
        
 
 class SCF(QCMethod):
@@ -276,71 +282,75 @@ class SCF(QCMethod):
                       "alpha_density_matrix" : " Alpha Density Matrix",
                       "mo_coefficients_r" : "RESTRICTED (RHF) MOLECULAR ORBITAL COEFFICIENTS",
                       "multipole_op" : "Multipole Matrix "}
-    
-    def scf_energy(self, l_index, data):
+
+    @var_tag(V.scf_energy)
+    def scf_energy(self, i, data):
         """ Get Hartree-Fock energy [a.u.] from scfman """
-        self.add_variable(self.func_name(), V.scf_energy)
+        # self.add_variable(self.func_name(), V.scf_energy)
         mLogger.info("SCF energy in [a.u.]", extra={"Parsed":V.scf_energy})
-        return float(data[l_index].split()[-1])
-    
-    def mo_energies(self, l_index, data):
+        return float(data[i].split()[-1])
+
+    @var_tag(V.mo_energies)
+    def mo_energies(self, i, data):
         """ Parse Hartree-Fock molecular orbital energies """
-        #self.map["mos"] = "orb_energies"
-        self.add_variable(self.func_name(), V.mo_energies)
+        # self.add_variable(self.func_name(), V.mo_energies)
         n = 0
         while True:
-            if "------------" in data[l_index+2+n]:
+            if "------------" in data[i+2+n]:
                 n += 1
                 break
             else:
                 n += 1
-        s = "".join(data[l_index+2:l_index+2+n])
-#            occpatt = r"-- Occupied --\s+(-?\d+\.\d+\s*){1,}\s+"
+        s = "".join(data[i+2:i+2+n])
         occp = r"-- Occupied --([^A-Z]*)-- Virtual --"
         virt = r"-- Virtual --([^A-Z]*)[-]{4,}"
-#            rem = re.search(occpatt,s,re.MULTILINE)
-        rem2 = re.search(occp,s,re.MULTILINE)
-        rem3 = re.search(virt,s,re.MULTILINE)
+        rem2 = re.search(occp, s, re.MULTILINE)
+        rem3 = re.search(virt, s, re.MULTILINE)
         if rem2:  
-            a_occ = re.findall("-?\d+\.\d+",rem2.group(0),re.M)
+            a_occ = re.findall("-?\d+\.\d+", rem2.group(0), re.M)
         if rem3:
-            a_virt = re.findall("-?\d+\.\d+",rem3.group(0),re.M)
-        alpha = MolecularOrbitals(a_occ,a_virt)
+            a_virt = re.findall("-?\d+\.\d+", rem3.group(0), re.M)
+        alpha = MolecularOrbitals(a_occ, a_virt)
         mLogger.info("molecular orbital energies",
-                     extra={"Parsed":V.mo_energies})
+                     extra={"Parsed" : V.mo_energies})
         return alpha
-        
-    def overlap_matrix(self, l_index, data):
+
+    @var_tag(V.overlap_matrix)
+    def overlap_matrix(self, i, data):
         """ Parse overlap matrix S """
-        self.add_variable(self.func_name(), V.overlap_matrix)
+        # self.add_variable(self.func_name(), V.overlap_matrix)
         mLogger.info("overlap matrix", extra={"Parsed":V.overlap_matrix})
-        return parse_symmetric_matrix(data, l_index)
-    
-    def orthonorm_matrix(self, l_index, data):
+        return parse_symmetric_matrix(data, i)
+
+    @var_tag(V.orthonorm_matrix)
+    def orthonorm_matrix(self, i, data):
         """ Parse orthonormalization matrix X """
-        self.add_variable(self.func_name(), V.orthonorm_matrix)
+        # self.add_variable(self.func_name(), V.orthonorm_matrix)
         mLogger.info("orthonormalization matrix",
                      extra={"Parsed":V.orthonorm_matrix})
-        return parse_symmetric_matrix(data, l_index)
-    
-    def alpha_density_matrix(self, l_index, data):
+        return parse_symmetric_matrix(data, i)
+
+    @var_tag(V.alpha_dens_mat)
+    def alpha_density_matrix(self, i, data):
         """ Parse alpha density matrix P_alpha """
-        self.add_variable(self.func_name(), V.alpha_dens_mat)
+        # self.add_variable(self.func_name(), V.alpha_dens_mat)
         mLogger.info("SCF alpha density matrix",
                      extra={"Parsed":V.alpha_dens_mat})
-        return parse_symmetric_matrix(data, l_index)
-    
-    def mo_coefficients_r(self, l_index, data):
+        return parse_symmetric_matrix(data, i)
+
+    @var_tag(V.mo_coefficients)
+    def mo_coefficients_r(self, i, data):
         """ Parse MO coefficients C for restricted SCF"""
-        self.add_variable(self.func_name(), V.mo_coefficients)
-        C = parse_AO_matrix(data, l_index)
+        # self.add_variable(self.func_name(), V.mo_coefficients)
+        C = parse_AO_matrix(data, i)
         mLogger.info("{0:} molecular orbital coefficients".format(C.shape[0]),
                      extra={"Parsed":V.mo_coefficients})
         return C
 
+    @var_tag(V.multipole_operator)
     def multipole_op(self, i, data):
         """ Parse Multipole matrix (x,x,x)."""
-        self.add_variable(self.func_name(), V.multipole_operator)
+        # self.add_variable(self.func_name(), V.multipole_operator)
         M = parse_symmetric_matrix(data, i)
         mLogger.info("Multipole matrix", extra={"Parsed": V.multipole_operator})
         return M
@@ -380,58 +390,64 @@ class ADC(QCMethod):
                       "trans_eh_cov": "Exciton analysis of the transition density matrix",
                       "trans_eh_corr": "Exciton analysis of the transition density matrix"}
 
+    @var_tag(V.exc_energy_rel)
     def exc_energies(self, i, data):
         """ Parse excitation energies [eV] """
-        self.add_variable(self.func_name(), V.exc_energy_rel)
+        # self.add_variable(self.func_name(), V.exc_energy_rel)
         mLogger.info("relative ADC(x) excitation energy/-ies [eV]",
                      extra={"Parsed":V.exc_energy_rel})
         return float(data[i].split()[-2])
-        
+
+    @var_tag(V.osc_str)
     def osc_strength(self, i, data):
         """ Parse oscillator strengths """
-        self.add_variable(self.func_name(), V.osc_str)
+        # self.add_variable(self.func_name(), V.osc_str)
         mLogger.info("ADC oscillator strength/s",
                      extra={"Parsed":V.osc_str})
         return float(data[i].split()[-1])
-        
+
+    @var_tag(V.scf_energy)
     def scf_energy(self, i, data):
         """ Parse SCF energy [a.u.] from adcman """
-        self.add_variable(self.func_name(), V.scf_energy)
+        # self.add_variable(self.func_name(), V.scf_energy)
         mLogger.info("SCF energy in [a.u.] (adcman)",
                      extra={"Parsed":V.scf_energy})
         return float(data[i+2].split()[-2])
-        
+
+    @var_tag(V.mp_energy)
     def mp_energy(self, i, data):
         """ Parse MP(x) reference state energy [a.u.] from adcman """
-        self.add_variable(self.func_name(), V.mp_energy)
+        # self.add_variable(self.func_name(), V.mp_energy)
         match = re.search(self.hooks["mp_energy"], data[i])
         if match:
             mLogger.info("MP(x) energy in [a.u.] (adcman)",
                          extra={"Parsed":V.mp_energy})
             return float(data[i+3].split()[2])
-    
+
+    @var_tag(V.mp_correction)
     def mp_correction(self, i, data):
         """Parse MP(x) energy contribution in [a.u.] from adcman."""
-        self.add_variable(self.func_name(), V.mp_correction)
+        # self.add_variable(self.func_name(), V.mp_correction)
         match = re.search(self.hooks["mp_correction"], data[i])
         if match:
             mLogger.info("MP(x) correction in [a.u.] (adcman)",
                              extra={"Parsed": V.mp_correction})
             return float(match.group("E"))
-         
-        
+
+    @var_tag(V.has_converged)
     def has_converged(self, i, data):
         """ Parse if state has converged. """
-        self.add_variable(self.func_name(), V.has_converged)
+        # self.add_variable(self.func_name(), V.has_converged)
         match = re.search(self.hooks["has_converged"], data[i])
         if match:
             mLogger.info("if states converged (adcman)",
                          extra={"Parsed":V.has_converged})
             return match.group(1) == "converged"
 
+    @var_tag(V.amplitudes)
     def amplitudes(self, i, data):
         """ Parse occ -> virt amplitudes """
-        self.add_variable(self.func_name(), V.amplitudes)
+        # self.add_variable(self.func_name(), V.amplitudes)
         try:
             # regex has the awesome captures feature
             import regex
@@ -459,6 +475,7 @@ class ADC(QCMethod):
         mLogger.info("ADC amplitudes", extra={"Parsed":V.amplitudes})
         return Amplitudes.from_list(amplist, factor=2.0)
 
+    @var_tag(V.total_dipole)
     def total_dipole(self, i, data):
         """ Parse total dipole moment [Debye] for HF, MP2 and ADC states
         
@@ -466,11 +483,12 @@ class ADC(QCMethod):
         -------
         float
             The total dipole moment [Debye]"""
-        self.add_variable(self.func_name(), V.total_dipole)
+        # self.add_variable(self.func_name(), V.total_dipole)
         mLogger.info("Total dipole moment [Debye]",
                      extra={"Parsed":V.total_dipole})
         return float(data[i].split()[-1])
-    
+
+    @var_tag(V.dipole_moment)
     def dipole_moment(self, i, data):
         """ Parse dipole moment components in [a.u.] 
         
@@ -479,52 +497,58 @@ class ADC(QCMethod):
         numpy.ndarray
             Dipole moment in [a.u.]
         """
-        self.add_variable(self.func_name(), V.dipole_moment)
+        # self.add_variable(self.func_name(), V.dipole_moment)
         match = re.search(self.hooks[self.func_name()], data[i])
         if match:
             mLogger.info("Dipole moment [a.u.]",
                          extra={"Parsed":V.dipole_moment})
             g = list(map(float,match.groups()))
             return np.asarray(g)
-            
+
+    @var_tag(V.diff_detach_mean)
     def diff_detach_mean(self, i, data):
         """ Parse mean position of detachment density [Ang] """
-        self.add_variable(self.func_name(), V.diff_detach_mean)
+        # self.add_variable(self.func_name(), V.diff_detach_mean)
         mLogger.info("mean position of detachment density [Ang]",
                 extra={"Parsed": V.diff_detach_mean})
         return parse_libwfa_vec("<r_h> [Ang]:", data, i)
 
+    @var_tag(V.diff_attach_mean)
     def diff_attach_mean(self, i, data):
         """ Parse mean position of attachment density [Ang] """
-        self.add_variable(self.func_name(), V.diff_attach_mean)
+        # self.add_variable(self.func_name(), V.diff_attach_mean)
         mLogger.info("mean position of attachment density [Ang]",
                 extra={"Parsed": V.diff_attach_mean})
         return parse_libwfa_vec("<r_e> [Ang]:", data, i)
 
+    @var_tag(V.diff_da_dist)
     def diff_da_dist(self, i, data):
         """ Parse linear D/A distance [Ang] """
-        self.add_variable(self.func_name(), V.diff_da_dist)
+        # self.add_variable(self.func_name(), V.diff_da_dist)
         mLogger.info("linear D/A distance [Ang]",
                 extra={"Parsed": V.diff_da_dist})
         return parse_libwfa_float("|<r_e - r_h>| [Ang]:", data, i)
 
+    @var_tag(V.diff_detach_size)
     def diff_detach_size(self, i, data):
         """ Parse detachment size [Ang] """
-        self.add_variable(self.func_name(), V.diff_detach_size)
+        # self.add_variable(self.func_name(), V.diff_detach_size)
         mLogger.info("RMS size of detachment density [Ang]",
                 extra={"Parsed": V.diff_detach_size})
         return parse_libwfa_float("Hole size [Ang]:", data, i)
 
+    @var_tag(V.diff_attach_size)
     def diff_attach_size(self, i, data):
         """ Parse attachment size [Ang] """
-        self.add_variable(self.func_name(), V.diff_attach_size)
+        # self.add_variable(self.func_name(), V.diff_attach_size)
         mLogger.info("RMS size of attachment density [Ang]",
                 extra={"Parsed": V.diff_attach_size})
         return parse_libwfa_float("Electron size [Ang]:", data, i)
 
+    @var_tag(V.diff_detach_mom)
     def diff_detach_mom(self, i, data):
         """ Parse cartesian components of detachment size [Ang] """
-        self.add_variable(self.func_name(), V.diff_detach_mom)
+        # self.add_variable(self.func_name(), V.diff_detach_mom)
         mLogger.info("cartesian components of detachment size [Ang]",
                 extra={"Parsed": V.diff_detach_mom})
         j = 1
@@ -540,9 +564,10 @@ class ADC(QCMethod):
             j += 1
         return vec
 
+    @var_tag(V.diff_attach_mom)
     def diff_attach_mom(self, i, data):
         """ Parse cartesian components of attachment size [Ang] """
-        self.add_variable(self.func_name(), V.diff_attach_mom)
+        # self.add_variable(self.func_name(), V.diff_attach_mom)
         mLogger.info("cartesian components of attachment size [Ang]",
                 extra={"Parsed": V.diff_attach_mom})
         j = 1
@@ -558,66 +583,74 @@ class ADC(QCMethod):
             j += 1
         return vec
 
-    def mulliken_adc(self, l_index, data):
+    @var_tag(V.mulliken)
+    def mulliken_adc(self, i, data):
         """ Parse MP(x) and ADC(x) mulliken charges """
-        self.add_variable(self.func_name(), V.mulliken)
+        # self.add_variable(self.func_name(), V.mulliken)
         chg, n = [], 0
         while True:
-            if "-------" in data[l_index+3+n]:
+            if "-------" in data[i+3+n]:
                 break
             else:
-                chg.append(data[l_index+3+n].split()[1:])
+                chg.append(data[i+3+n].split()[1:])
                 n += 1
         chg = [[x[0]]+[float(x[1])] for x in chg]
         mLogger.info("MP(x)/ADC(x) Mulliken charges",
                      extra={"Parsed":V.mulliken})
         return chg
 
+    @var_tag(V.trans_hole_mean)
     def trans_hole_mean(self, i, data):
         """ Parse mean position of hole [Ang] """
-        self.add_variable(self.func_name(), V.trans_hole_mean)
+        # self.add_variable(self.func_name(), V.trans_hole_mean)
         mLogger.info("mean position of hole [Ang]",
                 extra={"Parsed": V.trans_hole_mean})
         return parse_libwfa_vec("<r_h> [Ang]:", data, i)
 
+    @var_tag(V.trans_elec_mean)
     def trans_elec_mean(self, i, data):
         """ Parse mean position of electron [Ang] """
-        self.add_variable(self.func_name(), V.trans_elec_mean)
+        # self.add_variable(self.func_name(), V.trans_elec_mean)
         mLogger.info("mean position of electron [Ang]",
                 extra={"Parsed": V.trans_elec_mean})
         return parse_libwfa_vec("<r_e> [Ang]:", data, i)
 
+    @var_tag(V.trans_eh_dist)
     def trans_eh_dist(self, i, data):
         """ Parse linear e/h distance [Ang] """
-        self.add_variable(self.func_name(), V.trans_eh_dist)
+        # self.add_variable(self.func_name(), V.trans_eh_dist)
         mLogger.info("linear e/h distance [Ang]",
                 extra={"Parsed": V.trans_eh_dist})
         return parse_libwfa_float("|<r_e - r_h>| [Ang]:", data, i)
 
+    @var_tag(V.trans_hole_size)
     def trans_hole_size(self, i, data):
         """ Parse RMS hole size [Ang] """
-        self.add_variable(self.func_name(), V.trans_hole_size)
+        # self.add_variable(self.func_name(), V.trans_hole_size)
         mLogger.info("RMS hole size [Ang]",
                 extra={"Parsed": V.trans_hole_size})
         return parse_libwfa_float("Hole size [Ang]:", data, i)
 
+    @var_tag(V.trans_elec_size)
     def trans_elec_size(self, i, data):
         """ Parse RMS electron size [Ang] """
-        self.add_variable(self.func_name(), V.trans_elec_size)
+        # self.add_variable(self.func_name(), V.trans_elec_size)
         mLogger.info("RMS electron size [Ang]",
                 extra={"Parsed": V.trans_elec_size})
         return parse_libwfa_float("Electron size [Ang]:", data, i)
 
+    @var_tag(V.trans_eh_sep)
     def trans_eh_sep(self, i, data):
         """ Parse RMS electron-hole separation [Ang] """
-        self.add_variable(self.func_name(), V.trans_eh_sep)
+        # self.add_variable(self.func_name(), V.trans_eh_sep)
         mLogger.info("RMS electron size [Ang]",
                 extra={"Parsed": V.trans_eh_sep})
         return parse_libwfa_float("RMS electron-hole separation", data, i)
 
+    @var_tag(V.trans_hole_mom)
     def trans_hole_mom(self, i, data):
         """ Parse cartesian components of hole size [Ang] """
-        self.add_variable(self.func_name(), V.trans_hole_mom)
+        # self.add_variable(self.func_name(), V.trans_hole_mom)
         mLogger.info("cartesian components of hole size [Ang]",
                 extra={"Parsed": V.trans_hole_mom})
         j = 1
@@ -633,9 +666,10 @@ class ADC(QCMethod):
             j += 1
         return vec
 
+    @var_tag(V.trans_elec_mom)
     def trans_elec_mom(self, i, data):
         """ Parse cartesian components of electron size [Ang] """
-        self.add_variable(self.func_name(), V.trans_elec_mom)
+        # self.add_variable(self.func_name(), V.trans_elec_mom)
         mLogger.info("cartesian components of electron size [Ang]",
                 extra={"Parsed": V.trans_elec_mom})
         j = 1
@@ -651,10 +685,11 @@ class ADC(QCMethod):
             j += 1
         return vec
 
+    @var_tag(V.trans_eh_sep_mom)
     def trans_eh_sep_mom(self, i, data):
         """ Parse cartesian components of RMS
         electron-hole separation [Ang] """
-        self.add_variable(self.func_name(), V.trans_eh_sep_mom)
+        # self.add_variable(self.func_name(), V.trans_eh_sep_mom)
         mLogger.info("RMS electron-hole separation [Ang]",
                 extra={"Parsed": V.trans_eh_sep_mom})
         j = 1
@@ -670,16 +705,18 @@ class ADC(QCMethod):
             j += 1
         return vec
 
+    @var_tag(V.trans_eh_cov)
     def trans_eh_cov(self, i, data):
         """ Parse electron-hole covariance [Ang^2] """
-        self.add_variable(self.func_name(), V.trans_eh_cov)
+        # self.add_variable(self.func_name(), V.trans_eh_cov)
         mLogger.info("electron-hole covariance [Ang^2]",
                 extra={"Parsed": V.trans_eh_cov})
         return parse_libwfa_float("Covariance(r_h, r_e)", data, i)
 
+    @var_tag(V.trans_eh_corr)
     def trans_eh_corr(self, i, data):
         """ Parse electron-hole correlation coefficient """
-        self.add_variable(self.func_name(), V.trans_eh_corr)
+        # self.add_variable(self.func_name(), V.trans_eh_corr)
         mLogger.info("electron-hole correlation coefficient",
                 extra={"Parsed": V.trans_eh_corr})
         return parse_libwfa_float("Correlation coefficient:", data, i)
@@ -716,36 +753,41 @@ class FDE_ADC(QCMethod):
                       "V_NA_NB"      : "Nuc_A <-> Nuc_B:"}
 
     #TODO: implement new parsing for omega_ref, keep old one for legacy purpose
+    @var_tag(V.fde_omega_ref)
     def omega_ref(self, i, data):
         """ Parse FDE trust parameter (before construction of embedding potential) [ppm] """
-        self.add_variable(self.func_name(), V.fde_omega_ref)
+        # self.add_variable(self.func_name(), V.fde_omega_ref)
         mLogger.info("a priori FDE overlap parameter Omega_ref",
                      extra={"Parsed":V.fde_omega_ref})
         return float(data[i].split()[5])
-    
+
+    @var_tag(V.fde_omega_I)
     def omega_I(self, i, data):
         """ Parse state-specific trust parameter Omega_I [ppm]
             from final FDE output """
-        self.add_variable(self.func_name(), V.fde_omega_I)
+        # self.add_variable(self.func_name(), V.fde_omega_I)
         mLogger.info("state specific FDE overlap parameter Omega",
                      extra={"Parsed":V.fde_omega_I})
         return float(data[i].split()[1])
-    
+
+    @var_tag(V.fde_trust)
     def trust(self, i, data):
         """ Parse FDE trust parameter [ppm] from final FDE output """
-        self.add_variable(self.func_name(), V.fde_trust)
+        # self.add_variable(self.func_name(), V.fde_trust)
         mLogger.info("state specific FDE overlap parameter Lambda",
                      extra={"Parsed":V.fde_trust})
         return float(data[i].split()[1])
-        
+
+    @var_tag(V.fde_delta_lin)
     def delta_lin(self, i, data):
         """ Parse 1st order term [eV] of LinFDET approximation """
-        self.add_variable(self.func_name(), V.fde_delta_lin)
+        # self.add_variable(self.func_name(), V.fde_delta_lin)
         mLogger.info("1st order term of linearized FDET",
                      extra={"Parsed":V.fde_delta_lin})
         return float(data[i].split()[1])
-    
-    def timing(self, l_index, data):
+
+    @var_tag(V.fde_timing)
+    def timing(self, i, data):
         """ Parses FDE timings from the FDE summary.
         The general order of appearance is FDE-method, RhoA_ref, RhoB, v_emb,
         although RhoA_ref or RhoB might not be present due to import.
@@ -756,26 +798,27 @@ class FDE_ADC(QCMethod):
             A dictionary mapping tuples (CPU, wall) containing the times in seconds
             according to their label.
         """
-        self.add_variable(self.func_name(), V.fde_timing)
+        # self.add_variable(self.func_name(), V.fde_timing)
         timings = {}
         pattern = r"(?P<label>\b.+\S+)\s+(?P<cpu>\d+\.\d+)\s+\(.+\)\s+(?P<wall>\d+\.\d+)"
-        i = 0
+        n = 0
         while True:
-            if "------" in data[l_index+4+i]:
+            if "------" in data[i+4+n]:
                 break
-            match = re.search(pattern, data[l_index+4+i])
+            match = re.search(pattern, data[i+4+n])
             if match:
                 lbl = match.group("label")
                 timings[lbl] = (float(match.group("cpu")),
                                 float(match.group("wall")))
             elif match == None:
                 break
-            i += 1
+            n += 1
 
         mLogger.info("final FDE timings", extra={"Parsed":V.fde_timing})
         return timings
-    
-    def expansion(self, l_index, data):
+
+    @var_tag(V.fde_expansion)
+    def expansion(self, i, data):
         """ Parses FDE-Expansion type [ME, SE, RADM]
         
         Returns
@@ -783,11 +826,12 @@ class FDE_ADC(QCMethod):
         string
             Expansion type
         """
-        self.add_variable(self.func_name(), V.fde_expansion)
+        # self.add_variable(self.func_name(), V.fde_expansion)
         mLogger.info("FDET Basis set expansion",
                      extra={"Parsed":V.fde_expansion})
-        return data[l_index].split()[1]
-    
+        return data[i].split()[1]
+
+    @var_tag(V.fde_method_rhoA)
     def method_Aref(self, i, data):
         """ Parses which method is used to generate rhoAref (the density used
         to construct the initial embedding potential)
@@ -799,7 +843,7 @@ class FDE_ADC(QCMethod):
         string
             RhoAref method
         """
-        self.add_variable(self.func_name(), V.fde_method_rhoA)
+        # self.add_variable(self.func_name(), V.fde_method_rhoA)
         mLogger.info("FDET Method for rhoAref",
                      extra={"Parsed":V.fde_method_rhoA})
         s = data[i].split()
@@ -807,7 +851,8 @@ class FDE_ADC(QCMethod):
             return "imported"
         else:
             return s[-1]
-        
+
+    @var_tag(V.fde_method_rhoB)
     def method_B(self, i, data):
         """ Parses method type for rhoB. 
         
@@ -818,7 +863,7 @@ class FDE_ADC(QCMethod):
         string
             RhoB method
         """
-        self.add_variable(self.func_name(), V.fde_method_rhoB)
+        # self.add_variable(self.func_name(), V.fde_method_rhoB)
         mLogger.info("FDET Method for rhoB",
                      extra={"Parsed":V.fde_method_rhoB})
         s = data[i].split()
@@ -826,7 +871,8 @@ class FDE_ADC(QCMethod):
             return "imported"
         else:
             return s[-1]
-    
+
+    @var_tag(V.fde_method_rhoB)
     def method_B_legacy(self, i, data):
         """ Parses method type for rhoB. 
         
@@ -837,11 +883,12 @@ class FDE_ADC(QCMethod):
         string
             RhoB method
         """
-        self.add_variable(self.func_name(), V.fde_method_rhoB)
+        # self.add_variable(self.func_name(), V.fde_method_rhoB)
         mLogger.info("FDET Method for rhoB", extra={"Parsed":V.fde_method_rhoB})
         return data[i].split()[-1]
-        
-    def tfunc(self, l_index, data):
+
+    @var_tag(V.fde_Tfunc)
+    def tfunc(self, i, data):
         """ Determine what kinetic energy functional is used to construct
         the embedding potential.
         
@@ -850,12 +897,13 @@ class FDE_ADC(QCMethod):
         string
             Abbreviation of kinetic energy functional
         """
-        self.add_variable(self.func_name(), V.fde_Tfunc)
+        # self.add_variable(self.func_name(), V.fde_Tfunc)
         mLogger.info("kinetic energy functional for v_emb",
                      extra={"Parsed":V.fde_Tfunc})
-        return data[l_index].split()[-1]
-        
-    def xcfunc(self, l_index, data):
+        return data[i].split()[-1]
+
+    @var_tag(V.fde_XCfunc)
+    def xcfunc(self, i, data):
         """ Determine what exchange-correlation functional is used to construct
         the embedding potential.
         
@@ -864,12 +912,13 @@ class FDE_ADC(QCMethod):
         string
             Abbreviation of exchange-correlation energy functional
         """
-        self.add_variable(self.func_name(), V.fde_XCfunc)
+        # self.add_variable(self.func_name(), V.fde_XCfunc)
         mLogger.info("exchange-correlation functional for v_emb",
                      extra={"Parsed":V.fde_XCfunc})
-        return data[l_index].split()[-1]
-    
-    def xfunc(self, l_index, data):
+        return data[i].split()[-1]
+
+    @var_tag(V.fde_Xfunc)
+    def xfunc(self, i, data):
         """ Determine what exchange functional is used to construct
         the embedding potential.
         
@@ -878,12 +927,13 @@ class FDE_ADC(QCMethod):
         string
             Abbreviation of exchange energy functional
         """
-        self.add_variable(self.func_name(), V.fde_Xfunc)
+        # self.add_variable(self.func_name(), V.fde_Xfunc)
         mLogger.info("exchange functional for v_emb",
                      extra={"Parsed":V.fde_XCfunc})
-        return data[l_index].split()[-1]
-    
-    def cfunc(self, l_index, data):
+        return data[i].split()[-1]
+
+    @var_tag(V.fde_Cfunc)
+    def cfunc(self, i, data):
         """ Determine what correlation functional is used to construct
         the embedding potential.
         
@@ -892,12 +942,13 @@ class FDE_ADC(QCMethod):
         string
             Abbreviation of correlation energy functional
         """
-        self.add_variable(self.func_name(), V.fde_Cfunc)
+        # self.add_variable(self.func_name(), V.fde_Cfunc)
         mLogger.info("correlation functional for v_emb",
                      extra={"Parsed":V.fde_XCfunc})
-        return data[l_index].split()[-1]
-        
-    def nonel_ref(self, l_index, data):
+        return data[i].split()[-1]
+
+    @var_tag(V.fde_non_elstat_ref)
+    def nonel_ref(self, i, data):
         """Parses non additive properties of the reference density
         
         Returns
@@ -905,16 +956,17 @@ class FDE_ADC(QCMethod):
         list
             List of [non-additive E_xc, non-additive T_s, integrated v_xc nad, integrated v_T nad]
         """
-        self.add_variable(self.func_name(), V.fde_non_elstat_ref)
+        # self.add_variable(self.func_name(), V.fde_non_elstat_ref)
         l=[]
         mLogger.info("reference density non additive properties",
                      extra={"Parsed":V.fde_non_elstat_ref})
-        l.append(float(data[l_index+2].split()[-2]))#non-additive E_xc
-        l.append(float(data[l_index+3].split()[-2]))#non-additive T_s
-        l.append(float(data[l_index+5].split()[-2]))#integrated v_xc nad
-        l.append(float(data[l_index+6].split()[-2]))#integrated v_T nad
+        l.append(float(data[i+2].split()[-2]))#non-additive E_xc
+        l.append(float(data[i+3].split()[-2]))#non-additive T_s
+        l.append(float(data[i+5].split()[-2]))#integrated v_xc nad
+        l.append(float(data[i+6].split()[-2]))#integrated v_T nad
         return l
-    #---------------------
+
+    @var_tag(V.fde_sysA)
     def subsysA(self, i, data):
         """Parses total energy of subsystem A WITHOUT embedding potential.
         
@@ -923,11 +975,12 @@ class FDE_ADC(QCMethod):
         float
             Energy of subsystem A in [a.u.]
         """
-        self.add_variable(self.func_name(), V.fde_sysA)
+        # self.add_variable(self.func_name(), V.fde_sysA)
         mLogger.info("non-additive exchange-correlation bi-functional",
                      extra={"Parsed":V.fde_sysA})
         return float(data[i].split()[-2])
-    
+
+    @var_tag(V.fde_sysB)
     def subsysB(self, i, data):
         """Parses total energy of subsystem B if calculated within fdeman.
         
@@ -936,11 +989,12 @@ class FDE_ADC(QCMethod):
         float
             Energy of subsystem B in [a.u.]
         """
-        self.add_variable(self.func_name(), V.fde_sysB)
+        # self.add_variable(self.func_name(), V.fde_sysB)
         mLogger.info("non-additive exchange-correlation bi-functional",
                      extra={"Parsed":V.fde_sysB})
         return float(data[i].split()[-2])
-    
+
+    @var_tag(V.fde_Exc_nad)
     def E_xc_nad(self, i, data):
         """Parses values of the non-additive exchange-correlation bi-functional
         
@@ -948,11 +1002,12 @@ class FDE_ADC(QCMethod):
         -------
         float
         """
-        self.add_variable(self.func_name(), V.fde_Exc_nad)
+        # self.add_variable(self.func_name(), V.fde_Exc_nad)
         mLogger.info("non-additive exchange-correlation bi-functional",
                      extra={"Parsed":V.fde_Exc_nad})
         return float(data[i].split()[-2])
-    
+
+    @var_tag(V.fde_Ts_nad)
     def Ts_nad(self, i, data):
         """Parses values of the non-additive kinetic bi-functional
         
@@ -960,11 +1015,12 @@ class FDE_ADC(QCMethod):
         -------
         float
         """
-        self.add_variable(self.func_name(), V.fde_Ts_nad)
+        # self.add_variable(self.func_name(), V.fde_Ts_nad)
         mLogger.info("non-additive kinetic bi-functional",
                      extra={"Parsed":V.fde_Ts_nad})
         return float(data[i].split()[-2])
-    
+
+    @var_tag(V.fde_int_xc_nad_ref)
     def V_xc_nad_ref(self, i, data):
         """Parses integral of some rhoA with the non-additive 
         exchange-correlation potential obtained with rhoA_ref:
@@ -977,12 +1033,13 @@ class FDE_ADC(QCMethod):
         -------
         float
         """
-        self.add_variable(self.func_name(), V.fde_int_xc_nad_ref)
+        # self.add_variable(self.func_name(), V.fde_int_xc_nad_ref)
         mLogger.info(("expectation value of non-additive XC REFERENCE "
                       "potential"),
                      extra={"Parsed":V.fde_int_xc_nad_ref})
         return float(data[i+1].split()[-2])
-    
+
+    @var_tag(V.fde_int_xc_nad)
     def V_xc_nad(self, i, data):
         """Parses integral of some rhoA with the non-additive 
         exchange-correlation potential obtained with rhoA_emb (HF):
@@ -995,12 +1052,13 @@ class FDE_ADC(QCMethod):
         -------
         float
         """
-        self.add_variable(self.func_name(), V.fde_int_xc_nad)
+        # self.add_variable(self.func_name(), V.fde_int_xc_nad)
         mLogger.info(("expectation value of non-additive XC UPDATED "
                       "potential"),
                      extra={"Parsed":V.fde_int_xc_nad})
         return float(data[i+1].split()[-2])
-    
+
+    @var_tag(V.fde_int_Ts_nad_ref)
     def V_t_nad_ref(self, i, data):
         """Parses integral of some rhoA with the non-additive kinetic
         potential obtained with rhoA_ref:
@@ -1013,12 +1071,13 @@ class FDE_ADC(QCMethod):
         -------
         float
         """
-        self.add_variable(self.func_name(), V.fde_int_Ts_nad_ref)
+        # self.add_variable(self.func_name(), V.fde_int_Ts_nad_ref)
         mLogger.info(("expectation value of non-additive kinetic REFERENCE "
                       "potential"),
                      extra={"Parsed":V.fde_int_Ts_nad_ref})
         return float(data[i+2].split()[-2])
-    
+
+    @var_tag(V.fde_int_Ts_nad)
     def V_t_nad(self, i, data):
         """Parses integral of some rhoA with the non-additive kinetic
         potential obtained with rhoA_emb (HF):
@@ -1031,12 +1090,13 @@ class FDE_ADC(QCMethod):
         -------
         float
         """
-        self.add_variable(self.func_name(), V.fde_int_Ts_nad)
+        # self.add_variable(self.func_name(), V.fde_int_Ts_nad)
         mLogger.info(("expectation value of non-additive kinetic UPDATED "
                       "potential"),
                      extra={"Parsed":V.fde_int_Ts_nad})
         return float(data[i+2].split()[-2])
-    
+
+    @var_tag(V.fde_J)
     def J_int(self, i, data):
         """Parses Coulomb repulsion of rhoA and rhoB.
         
@@ -1048,11 +1108,12 @@ class FDE_ADC(QCMethod):
         -------
         float
         """
-        self.add_variable(self.func_name(), V.fde_J)
+        # self.add_variable(self.func_name(), V.fde_J)
         mLogger.info("Coulomb repulsion of rhoA-rhoB",
                      extra={"Parsed":V.fde_J})
         return float(data[i].split()[-2])
-    
+
+    @var_tag(V.fde_AnucB)
     def AnucB(self, i, data):
         """Parses Coulomb attraction of rhoA and NucB.
         
@@ -1060,11 +1121,12 @@ class FDE_ADC(QCMethod):
         \\mathbf{r}`
         
         """
-        self.add_variable(self.func_name(), V.fde_AnucB)
+        # self.add_variable(self.func_name(), V.fde_AnucB)
         mLogger.info("Coulomb attraction of rhoA-nucB",
                      extra={"Parsed":V.fde_AnucB})
         return float(data[i].split()[-2])
-    
+
+    @var_tag(V.fde_BnucA)
     def BnucA(self, i, data):
         """Parses Coulomb attraction of rhoB and NucA.
         
@@ -1072,11 +1134,12 @@ class FDE_ADC(QCMethod):
         \\mathbf{r}`
         
         """
-        self.add_variable(self.func_name(), V.fde_BnucA)
+        # self.add_variable(self.func_name(), V.fde_BnucA)
         mLogger.info("Coulomb attraction of rhoB-nucA",
                      extra={"Parsed":V.fde_BnucA})
         return float(data[i].split()[-2])
-    
+
+    @var_tag(V.fde_VNN)
     def V_NA_NB(self, i, data):
         """Parses Coulomb repulsion of nuclei NucA and NucB.
         
@@ -1084,7 +1147,7 @@ class FDE_ADC(QCMethod):
         \\mathbf{R}_{B}|}`
     
         """
-        self.add_variable(self.func_name(), V.fde_VNN)
+        # self.add_variable(self.func_name(), V.fde_VNN)
         mLogger.info("Coulomb repulsion of nucA-nucB",
                      extra={"Parsed":V.fde_VNN})
         return float(data[i].split()[-2])
@@ -1108,19 +1171,19 @@ class CIS(QCMethod):
             "diabatic_ss_dist": (r"^DIABATIC:.*sum of square of distances.*"
             r"Occ\s*(?P<occ>\d+\.\d+)\s*Virt\s*(?P<virt>\d+\.\d+)")}
 
-
+    @var_tag(V.exc_energy_rel)
     def exc_energies(self, i, data):
         """ Parse excitation energies [eV] """
-        self.add_variable(self.func_name(), V.exc_energy_rel)
+        # self.add_variable(self.func_name(), V.exc_energy_rel)
         mLogger.info("relative CIS excitation energy/-ies [eV]",
                      extra={"Parsed": V.exc_energy_rel})
         match = re.search(self.hooks["exc_energies"], data[i])
         if match:
             return float(match.group("energy"))
-
+    @var_tag(V.adia_center)
     def adiabatic_center(self, i, data):
         """ Parse adiabatic center """
-        self.add_variable(self.func_name(), V.adia_center)
+        # self.add_variable(self.func_name(), V.adia_center)
         mLogger.info("adiabatic center locations",
                      extra={"Parsed": V.adia_center})
         match = re.search(self.hooks["adiabatic_center"], data[i])
@@ -1128,18 +1191,20 @@ class CIS(QCMethod):
             all_coord = [float(c) for c in match.groups()]
             return [all_coord[:3], all_coord[3:]]
 
+    @var_tag(V.adia_ss_dist)
     def adiabatic_ss_dist(self, i, data):
         """ Parse sum of square distances to other states """
-        self.add_variable(self.func_name(), V.adia_ss_dist)
+        # self.add_variable(self.func_name(), V.adia_ss_dist)
         mLogger.info("adiabatic sum of squares of distance",
                      extra={"Parsed": V.adia_ss_dist})
         match = re.search(self.hooks[self.func_name()], data[i])
         if match:
             return [float(match.group("occ")), float(match.group("virt"))]
 
+    @var_tag(V.adia_hamilt)
     def adiabatic_hamilt(self, i, data):
         """ Parse the adiabatic representation of the Hamiltonian """
-        self.add_variable(self.func_name(), V.adia_hamilt)
+        # self.add_variable(self.func_name(), V.adia_hamilt)
         mLogger.info("adiabatic representation of the Hamiltonian",
                 extra={"Parsed": V.adia_hamilt})
         j = 1
@@ -1159,10 +1224,11 @@ class CIS(QCMethod):
             n = int(np.sqrt(len(H)))
             H = H.reshape((n,n))
         return H
-            
+
+    @var_tag(V.dia_hamilt)
     def diabatic_hamilt(self, i, data):
         """ Parse the diabatic representation of the Hamiltonian """
-        self.add_variable(self.func_name(), V.dia_hamilt)
+        # self.add_variable(self.func_name(), V.dia_hamilt)
         mLogger.info("diabatic representation of the Hamiltonian",
                 extra={"Parsed": V.dia_hamilt})
         j = 1
@@ -1183,9 +1249,10 @@ class CIS(QCMethod):
             H = H.reshape((n,n))
         return H
 
+    @var_tag(V.dia_center)
     def diabatic_center(self, i, data):
         """ Parse diabatic center """
-        self.add_variable(self.func_name(), V.dia_center)
+        # self.add_variable(self.func_name(), V.dia_center)
         mLogger.info("adiabatic center locations",
                      extra={"Parsed": V.dia_center})
         match = re.search(self.hooks[self.func_name()], data[i])
@@ -1193,9 +1260,10 @@ class CIS(QCMethod):
             all_coord = [float(c) for c in match.groups()]
             return [all_coord[:3], all_coord[3:]]
 
+    @var_tag(V.dia_ss_dist)
     def diabatic_ss_dist(self, i, data):
         """ Parse sum of square distances to other states """
-        self.add_variable(self.func_name(), V.dia_ss_dist)
+        # self.add_variable(self.func_name(), V.dia_ss_dist)
         mLogger.info("diabatic sum of squares of distance",
                      extra={"Parsed": V.dia_ss_dist})
         match = re.search(self.hooks[self.func_name()], data[i])

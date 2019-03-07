@@ -119,20 +119,32 @@ class VarNames(object):
     trans_eh_cov      = "trans_eh_cov"
     trans_eh_corr     = "trans_eh_corr"
 
+def var_tag(var_name):
+    def var_decorator(func):
+        def func_wrapper(self, i, data):
+            self.map[func.__name__] = var_name
+            return func(self, i, data)
+        return func_wrapper
+    return var_decorator
+
 class QCMethod(object):
     """ Base class for Quantum Chemistry methods """
     def __init__(self):
-        self.map = {}
+        self.map = {}#map of function names to variable names
         
     def func_name(self):
         """
-        :return: name of caller
+        Returns
+        -------
+        str
+            name of caller
         """
         return sys._getframe(1).f_code.co_name
     
     def add_variable(self, func_name, var_name):
+        """ Registers variable to the `out.results` ParseContainer"""
         self.map[func_name] = var_name
-        
+    
     def print_parsed(self, var_name, description):
         """Print short parsing information
         

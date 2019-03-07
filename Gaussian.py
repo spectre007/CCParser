@@ -11,6 +11,7 @@ import numpy as np
 import logging
 from .ParserData import MolecularOrbitals, Amplitudes
 from .QCBase import QCMethod, VarNames as V
+from .QCBase import var_tag
 from .ParserTools import is_float
 
 # create module logger
@@ -58,11 +59,11 @@ class General(QCMethod):
         super().__init__()# necessary for every derived class of QCMethod
         # hooks as {function_name : hook_string}
         self.hooks = {"has_finished" : "Normal termination of Gaussian"}
-    
+
+    @var_tag(V.has_finished)
     def has_finished(self, i, data):
         """ Parse final statement that indicates if Gaussian finished
         without errors. """
-        self.add_variable(self.func_name(), V.has_finished)
         mLogger.info("whether Gaussian has finished successfully",
                      extra={"Parsed": V.has_finished})
         return True
@@ -74,8 +75,6 @@ class TDDFT(QCMethod):
         # hooks as {function_name : hook_string}
         self.hooks = {"transition_dipole":("Ground to excited state transition"
                           " electric dipole moments"),
-#                      "oscillator_strength":("Ground to excited state"
-#                          " transition electric dipole moments"),
                       "exc_energy_rel": (r"Excited State\s+\d+:\s+(?P<Label>"
                           r"[A-Za-z0-9_?-]+)\s+(?P<ExcEV>\d+\.\d+) eV\s+"
                           r"(?P<ExcNM>\d+\.\d+) nm\s+f=(?P<Osc>\d+\.\d+)\s+"
@@ -89,48 +88,41 @@ class TDDFT(QCMethod):
                           r"(?P<ExcNM>\d+\.\d+) nm\s+f=(?P<Osc>\d+\.\d+)\s+"
                           r"<S\*\*2>=(?P<S2>\d+\.\d+)\s*"),
                       "amplitudes": r"Excited State\s+\d+:\s+"}
-    
+
+    @var_tag(V.transition_dipole)
     def transition_dipole(self, i, data):
         """Parse transition dipole moment in [a.u.]."""
-        self.add_variable(self.func_name(), V.transition_dipole)
         mLogger.info("transition dipole moment",
                      extra={"Parsed": V.transition_dipole})
         return parse_tddft_list(i, data, columns=[1,2,3])
-    
-#    def oscillator_strength(self, i , data):
-#        """Parse oscillator strength."""
-#        self.add_variable(self.func_name(), V.osc_str)
-#        mLogger.info("oscillator strength",
-#                     extra={"Parsed": V.osc_str})
-#        return parse_tddft_list(i, data, columns=[5])
-    
+
+    @var_tag(V.exc_energy_rel)
     def exc_energy_rel(self, i , data):
         """Parse excitation energy in [eV]."""
-        self.add_variable(self.func_name(), V.exc_energy_rel)
         match = re.search(self.hooks[self.func_name()], data[i])
         mLogger.info("relative TDDFT excitation energy/-ies [eV]",
                      extra={"Parsed": V.exc_energy_rel})
         return float(match.group("ExcEV"))
-    
+
+    @var_tag(V.state_label)
     def state_label(self, i , data):
         """Parse state label (multiplicity and symmetry group)."""
-        self.add_variable(self.func_name(), V.state_label)
         match = re.search(self.hooks[self.func_name()], data[i])
         mLogger.info("state multiplicity and symmetry",
                      extra={"Parsed": V.state_label})
         return match.group("Label")
-    
+
+    @var_tag(V.osc_str)
     def oscillator_strength(self, i , data):
         """Parse oscillator strength."""
-        self.add_variable(self.func_name(), V.osc_str)
         match = re.search(self.hooks[self.func_name()], data[i])
         mLogger.info("oscillator strength",
                      extra={"Parsed": V.osc_str})
         return float(match.group("Osc"))
-    
+
+    @var_tag(V.amplitudes)
     def amplitudes(self, i, data):
         """ Parse occ -> virt amplitudes """
-        self.add_variable(self.func_name(), V.amplitudes)
         pattern = r"\s+(?P<occ>\d+) -> (?P<virt>\d+)\s+(?P<v>-?\d+\.\d+)\s*"
         j = 0 # line counter
         amplist = []
@@ -144,7 +136,7 @@ class TDDFT(QCMethod):
                 break
         mLogger.info("TDDFT amplitudes", extra={"Parsed":V.amplitudes})
         return Amplitudes.from_list(amplist, factor=2.0)
-    
+
 class Freq(QCMethod):
     """Parse frequency output."""
     def __init__(self):
@@ -152,10 +144,10 @@ class Freq(QCMethod):
         # hooks as {function_name : hook_string}
         self.hooks = {"vibrational_freq" : "and normal coordinates:",
                       "infrared_intensity" : "and normal coordinates:"}
-    
+
+    @var_tag(V.vib_freq)
     def vibrational_freq(self, i , data):
         """Parse vibrational frequencies in [cm-1]."""
-        self.add_variable(self.func_name(), V.vib_freq)
         n = 0
         freqs = []
         while "------" not in data[i+n]:
@@ -166,10 +158,10 @@ class Freq(QCMethod):
         mLogger.info("vibrational frequencies in [cm-1]",
                      extra={"Parsed":V.vib_freq})
         return freqs
-    
+
+    @var_tag(V.vib_intensity)
     def infrared_intensity(self, i, data):
         """Parse IR intensity in [km/mol]."""
-        self.add_variable(self.func_name(), V.vib_intensity)
         n = 0
         intensity = []
         while "------" not in data[i+n]:
@@ -180,5 +172,3 @@ class Freq(QCMethod):
         mLogger.info("IR intensities in [km/mol]",
                      extra={"Parsed":V.vib_intensity})
         return intensity
-        
-            
