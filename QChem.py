@@ -125,14 +125,44 @@ def parse_AO_matrix(readlin, n, asmatrix=True):
     else:
         return matrix
 
-def get_inline_vec(line, asarray=True):
+def parse_inline_vec(line, asarray=True):
     """ Extracts a vector of the format
     '[ 1.000, 2.000, 3.000]' from the current line"""
     pattern = r"[+-]?\d+\.\d*"
     match = re.findall(pattern, line)
-    match = list(map(float, match))
     if len(match) > 0:
+        match = list(map(float, match))
         return np.asarray(match)
+
+def parse_libwfa_vec(hook_string, data, i):
+    """ Extract vector from libwfa block
+    which ends with an empty line."""
+    j = 1
+    vec = []
+    while True:
+        ls = data[i+j].split()
+        if len(ls) == 0:
+            break
+        elif hook_string in data[i+j]:
+            vec = parse_inline_vec(data[i+j])
+            break
+        j += 1
+    return vec
+
+def parse_libwfa_float(hook_string, data, i):
+    """ Extracts a float from libwfa block
+    which ends with an empty line."""
+    j = 1
+    dist = 0.0
+    while True:
+        ls = data[i+j].split()
+        if len(ls) == 0:
+            break
+        elif hook_string in data[i+j]:
+            dist = float(ls[-1])
+            break
+        j += 1
+    return dist
 
 class General(QCMethod):
     """Parse general information like basis set, number of atoms, etc. """
@@ -330,9 +360,18 @@ class ADC(QCMethod):
                       "diff_detach_size": "Exciton analysis of the difference density matrix",
                       "diff_attach_size": "Exciton analysis of the difference density matrix",
                       "diff_detach_mom": "Exciton analysis of the difference density matrix",
-                      "diff_attach_mom": "Exciton analysis of the difference density matrix"}
-                      #"diff_eh_sep": "Exciton analysis of the difference density matrix",
-                      #"trans_mean_hole": "Exciton analysis of the transition density matrix"}
+                      "diff_attach_mom": "Exciton analysis of the difference density matrix",
+                      "trans_hole_mean": "Exciton analysis of the transition density matrix",
+                      "trans_elec_mean": "Exciton analysis of the transition density matrix",
+                      "trans_eh_dist": "Exciton analysis of the transition density matrix",
+                      "trans_hole_size": "Exciton analysis of the transition density matrix",
+                      "trans_elec_size": "Exciton analysis of the transition density matrix",
+                      "trans_eh_sep": "Exciton analysis of the transition density matrix",
+                      "trans_hole_mom": "Exciton analysis of the transition density matrix",
+                      "trans_elec_mom": "Exciton analysis of the transition density matrix",
+                      "trans_eh_sep_mom": "Exciton analysis of the transition density matrix",
+                      "trans_eh_cov": "Exciton analysis of the transition density matrix",
+                      "trans_eh_corr": "Exciton analysis of the transition density matrix"}
 
     def exc_energies(self, i, data):
         """ Parse excitation energies [eV] """
@@ -446,85 +485,35 @@ class ADC(QCMethod):
         self.add_variable(self.func_name(), V.diff_detach_mean)
         mLogger.info("mean position of detachment density [Ang]",
                 extra={"Parsed": V.diff_detach_mean})
-        j = 1
-        vec = []
-        while True:
-            ls = data[i+j].split()
-            if len(ls) == 0:
-                break
-            elif "<r_h> [Ang]:" in data[i+j]:
-                vec = get_inline_vec(data[i+j])
-                break
-            j += 1
-        return vec
+        return parse_libwfa_vec("<r_h> [Ang]:", data, i)
 
     def diff_attach_mean(self, i, data):
         """ Parse mean position of attachment density [Ang] """
         self.add_variable(self.func_name(), V.diff_attach_mean)
         mLogger.info("mean position of attachment density [Ang]",
                 extra={"Parsed": V.diff_attach_mean})
-        j = 1
-        vec = []
-        while True:
-            ls = data[i+j].split()
-            if len(ls) == 0:
-                break
-            elif "<r_e> [Ang]:" in data[i+j]:
-                vec = get_inline_vec(data[i+j])
-                break
-            j += 1
-        return vec
+        return parse_libwfa_vec("<r_e> [Ang]:", data, i)
 
     def diff_da_dist(self, i, data):
         """ Parse linear D/A distance [Ang] """
         self.add_variable(self.func_name(), V.diff_da_dist)
         mLogger.info("linear D/A distance [Ang]",
                 extra={"Parsed": V.diff_da_dist})
-        j = 1
-        dist = 0.0
-        while True:
-            ls = data[i+j].split()
-            if len(ls) == 0:
-                break
-            elif "|<r_e - r_h>| [Ang]:" in data[i+j]:
-                dist = float(ls[-1])
-                break
-            j += 1
-        return dist
+        return parse_libwfa_float("|<r_e - r_h>| [Ang]:", data, i)
 
     def diff_detach_size(self, i, data):
         """ Parse detachment size [Ang] """
         self.add_variable(self.func_name(), V.diff_detach_size)
         mLogger.info("RMS size of detachment density [Ang]",
                 extra={"Parsed": V.diff_detach_size})
-        j = 1
-        size = 0.0
-        while True:
-            ls = data[i+j].split()
-            if len(ls) == 0:
-                break
-            elif "Hole size [Ang]:" in data[i+j]:
-                size = ls[-1]
-                break
-            j += 1
-        return size
+        return parse_libwfa_float("Hole size [Ang]:", data, i)
 
     def diff_attach_size(self, i, data):
         """ Parse attachment size [Ang] """
         self.add_variable(self.func_name(), V.diff_attach_size)
         mLogger.info("RMS size of attachment density [Ang]",
                 extra={"Parsed": V.diff_attach_size})
-        j = 1
-        size = 0.0
-        while True:
-            ls = data[i+j].split()
-            if len(ls) == 0:
-                break
-            elif "Electron size [Ang]:" in data[i+j]:
-                size = ls[-1]
-                break
-            j += 1
-        return size
+        return parse_libwfa_float("Electron size [Ang]:", data, i)
 
     def diff_detach_mom(self, i, data):
         """ Parse cartesian components of detachment size [Ang] """
@@ -539,7 +528,7 @@ class ADC(QCMethod):
                 break
             elif "Hole size [Ang]:" in data[i+j] and \
             "Cartesian components [Ang]:" in data[i+j+1]:
-                vec = get_inline_vec(data[i+j+1])
+                vec = parse_inline_vec(data[i+j+1])
                 break
             j += 1
         return vec
@@ -557,7 +546,7 @@ class ADC(QCMethod):
                 break
             elif "Electron size [Ang]:" in data[i+j] and \
             "Cartesian components [Ang]:" in data[i+j+1]:
-                vec = get_inline_vec(data[i+j+1])
+                vec = parse_inline_vec(data[i+j+1])
                 break
             j += 1
         return vec
@@ -576,7 +565,118 @@ class ADC(QCMethod):
         mLogger.info("MP(x)/ADC(x) Mulliken charges",
                      extra={"Parsed":V.mulliken})
         return chg
-    
+
+    def trans_hole_mean(self, i, data):
+        """ Parse mean position of hole [Ang] """
+        self.add_variable(self.func_name(), V.trans_hole_mean)
+        mLogger.info("mean position of hole [Ang]",
+                extra={"Parsed": V.trans_hole_mean})
+        return parse_libwfa_vec("<r_h> [Ang]:", data, i)
+
+    def trans_elec_mean(self, i, data):
+        """ Parse mean position of electron [Ang] """
+        self.add_variable(self.func_name(), V.trans_elec_mean)
+        mLogger.info("mean position of electron [Ang]",
+                extra={"Parsed": V.trans_elec_mean})
+        return parse_libwfa_vec("<r_e> [Ang]:", data, i)
+
+    def trans_eh_dist(self, i, data):
+        """ Parse linear e/h distance [Ang] """
+        self.add_variable(self.func_name(), V.trans_eh_dist)
+        mLogger.info("linear e/h distance [Ang]",
+                extra={"Parsed": V.trans_eh_dist})
+        return parse_libwfa_float("|<r_e - r_h>| [Ang]:", data, i)
+
+    def trans_hole_size(self, i, data):
+        """ Parse RMS hole size [Ang] """
+        self.add_variable(self.func_name(), V.trans_hole_size)
+        mLogger.info("RMS hole size [Ang]",
+                extra={"Parsed": V.trans_hole_size})
+        return parse_libwfa_float("Hole size [Ang]:", data, i)
+
+    def trans_elec_size(self, i, data):
+        """ Parse RMS electron size [Ang] """
+        self.add_variable(self.func_name(), V.trans_elec_size)
+        mLogger.info("RMS electron size [Ang]",
+                extra={"Parsed": V.trans_elec_size})
+        return parse_libwfa_float("Electron size [Ang]:", data, i)
+
+    def trans_eh_sep(self, i, data):
+        """ Parse RMS electron-hole separation [Ang] """
+        self.add_variable(self.func_name(), V.trans_eh_sep)
+        mLogger.info("RMS electron size [Ang]",
+                extra={"Parsed": V.trans_eh_sep})
+        return parse_libwfa_float("RMS electron-hole separation", data, i)
+
+    def trans_hole_mom(self, i, data):
+        """ Parse cartesian components of hole size [Ang] """
+        self.add_variable(self.func_name(), V.trans_hole_mom)
+        mLogger.info("cartesian components of hole size [Ang]",
+                extra={"Parsed": V.trans_hole_mom})
+        j = 1
+        vec = []
+        while True:
+            ls = data[i+j].split()
+            if len(ls) == 0:
+                break
+            elif "Hole size [Ang]:" in data[i+j] and \
+            "Cartesian components [Ang]:" in data[i+j+1]:
+                vec = parse_inline_vec(data[i+j+1])
+                break
+            j += 1
+        return vec
+
+    def trans_elec_mom(self, i, data):
+        """ Parse cartesian components of electron size [Ang] """
+        self.add_variable(self.func_name(), V.trans_elec_mom)
+        mLogger.info("cartesian components of electron size [Ang]",
+                extra={"Parsed": V.trans_elec_mom})
+        j = 1
+        vec = []
+        while True:
+            ls = data[i+j].split()
+            if len(ls) == 0:
+                break
+            elif "Electron size [Ang]:" in data[i+j] and \
+            "Cartesian components [Ang]:" in data[i+j+1]:
+                vec = parse_inline_vec(data[i+j+1])
+                break
+            j += 1
+        return vec
+
+    def trans_eh_sep_mom(self, i, data):
+        """ Parse cartesian components of RMS
+        electron-hole separation [Ang] """
+        self.add_variable(self.func_name(), V.trans_eh_sep_mom)
+        mLogger.info("RMS electron-hole separation [Ang]",
+                extra={"Parsed": V.trans_eh_sep_mom})
+        j = 1
+        vec = []
+        while True:
+            ls = data[i+j].split()
+            if len(ls) == 0:
+                break
+            elif "RMS electron-hole separation" in data[i+j] and \
+            "Cartesian components [Ang]:" in data[i+j+1]:
+                vec = parse_inline_vec(data[i+j+1])
+                break
+            j += 1
+        return vec
+
+    def trans_eh_cov(self, i, data):
+        """ Parse electron-hole covariance [Ang^2] """
+        self.add_variable(self.func_name(), V.trans_eh_cov)
+        mLogger.info("electron-hole covariance [Ang^2]",
+                extra={"Parsed": V.trans_eh_cov})
+        return parse_libwfa_float("Covariance(r_h, r_e)", data, i)
+
+    def trans_eh_corr(self, i, data):
+        """ Parse electron-hole correlation coefficient """
+        self.add_variable(self.func_name(), V.trans_eh_corr)
+        mLogger.info("electron-hole correlation coefficient",
+                extra={"Parsed": V.trans_eh_corr})
+        return parse_libwfa_float("Correlation coefficient:", data, i)
+
 class FDE_ADC(QCMethod):
     """ Parsing related to FDE-ADC implementation in Q-Chem """
     def __init__(self):
