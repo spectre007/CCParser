@@ -10,6 +10,9 @@ from .ParserData import StructEncoder
 from .QCBase import GenFormatter, VarNames as V
 
 class Parser(object):
+    
+    FIND_MAX_LINES = 100
+
     def __init__(self, output, *, software=None, to_console=True,
                  to_file=False, log_file="CCParser.log", to_json=False,
                  json_file="CCParser.json"):#cf. PEP-3102
@@ -38,18 +41,17 @@ class Parser(object):
         self.to_file = to_file
         self.logname = log_file
         self.setupLogger()
-
+        self.logger.warning("CCParser starts...")
+        # determine software
         if software != None:
             self.software = software
         else:
             self.find_software()
-            raise ValueError("No software specified!")
 
         self.output_basename = os.path.basename(output)
         self.read_output()# read output to memory
         self.load_methods()# software dependent import
         self.results = Struct()# Set up container
-        self.logger.warning("CCParser starts...")
         for i, line in enumerate(self.rawData):
             for mthd in self.methods:
 #                match, key = self.canParse(line, mthd)
@@ -202,4 +204,45 @@ class Parser(object):
         self.logger.warning("Dumped CCParser.results to JSON file.")
 
     def find_software(self):
-        pass
+        with open(self.f_output) as f:
+            for n, line in enumerate(f):
+                if n > Parser.FIND_MAX_LINES:
+                    err_str = "Could not determine software within {0} lines!".format(
+                            Parser.FIND_MAX_LINES)
+                    raise IndexError(err_str)
+                if is_qchem(line):
+                    self.software = "qchem"
+                    break
+                elif is_gaussian(line):
+                    self.software = "gaussian"
+                    break
+                elif is_molcas(line):
+                    self.software = "molcas"
+                    break
+                elif is_turbomole(line):
+                    self.software = "turbomole"
+                    break
+                elif is_psi4(line):
+                    self.software = "psi"
+                    break
+        self.logger.warning("Automatically determined software is {0}".format(self.software))
+
+def is_qchem(line):
+    hooks = ["Welcome to Q-Chem",
+            "A Quantum Leap Into The Future Of Chemistry"
+            ]
+    # for now only use first hook to save time
+    return hooks[0] in line
+
+def is_gaussian(line):
+    hooks = ["Gaussian 88(TM) system (copyright 1988, Gaussian, Inc.)"]
+    return hooks[0] in line
+
+def is_molcas(line):
+    return False
+
+def is_turbomole(line):
+    return False
+
+def is_psi4(line):
+    return False
