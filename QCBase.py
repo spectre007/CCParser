@@ -50,6 +50,7 @@ class VarNames(object):
     has_finished = "has_finished"
     basis_name   = "bas_name"
     state_label  = "state_label"
+    version      = "version"
     
     # -- Issues & Warnings --
     has_converged = "state_cnvgd"

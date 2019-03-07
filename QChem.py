@@ -169,15 +169,24 @@ class General(QCMethod):
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
         # hooks as {function_name : hook_string}
-        self.hooks = {"xyz_coordinates" : "Standard Nuclear Orientation (Angstroms)",
-                      "electrons" : r"There are \w+(?P<alpha>\d+) alpha and \w+(?P<beta>\d+) beta electrons",
-                      "nuc_rep" : "Nuclear Repulsion Energy =",
-                      "n_basis" : r"There are (?P<shells>\d+) shells and (?P<bsf>\d+) basis functions",
-                      "mulliken": "Ground-State Mulliken Net Atomic Charges",
-                      "chelpg": "Ground-State ChElPG Net Atomic Charges",
-                      "has_finished": "Thank you very much for using Q-Chem.",
-                      "basis_name": "Requested basis set is"}
-    
+        self.hooks = {'version' : r'Q-Chem\s*(\d+\.\d+), Q-Chem, Inc.,',
+                "xyz_coordinates" : "Standard Nuclear Orientation (Angstroms)",
+                "electrons" : r"There are \w+(?P<alpha>\d+) alpha and \w+(?P<beta>\d+) beta electrons",
+                "nuc_rep" : "Nuclear Repulsion Energy =",
+                "n_basis" : r"There are (?P<shells>\d+) shells and (?P<bsf>\d+) basis functions",
+                "mulliken": "Ground-State Mulliken Net Atomic Charges",
+                "chelpg": "Ground-State ChElPG Net Atomic Charges",
+                "has_finished": "Thank you very much for using Q-Chem.",
+                "basis_name": "Requested basis set is"}
+
+    def version(self, i, data):
+        """ Extract version number of Q-Chem """
+        self.add_variable(self.func_name(), V.version)
+        mLogger.info("Q-Chem version number", extra={"Parsed": V.version})
+        match = re.search(self.hooks['version'], data[i])
+        if match:
+            return match.group(1)
+
     def xyz_coordinates(self, l_index, data):
         """ Get XYZ coordinates """
         self.add_variable(self.func_name(), V.xyz_coordinates)
@@ -189,7 +198,6 @@ class General(QCMethod):
                 xyz_dat.append(data[l_index+3+n].split()[1:])
                 n += 1
         xyz_dat = [[x[0]]+list(map(float,x[1:])) for x in xyz_dat]
-#            self.print_parsed(V.xyz_coordinates, "XYZ coordinates")
         mLogger.info("XYZ coordinates", extra={"Parsed":V.xyz_coordinates})
         return xyz_dat
 
@@ -200,12 +208,11 @@ class General(QCMethod):
                      extra={"Parsed":V.nuc_repulsion})
         return float(data[l_index].split()[-2])
     
-    def n_basis(self, l_index, data):
+    def n_basis(self, i, data):
         """ Parse number of basis functions """
         self.add_variable(self.func_name(), V.n_bas)
-        match = re.search(self.hooks["n_basis"], data[l_index])
+        match = re.search(self.hooks["n_basis"], data[i])
         if match:
-#            self.print_parsed(V.n_bas, "number of basis functions")
             mLogger.info("number of basis functions",
                          extra={"Parsed":V.n_bas})
             return int(match.group("bsf"))
