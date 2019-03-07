@@ -6,4 +6,3 @@ math
 importlib
 inspect
 json
-pandas
