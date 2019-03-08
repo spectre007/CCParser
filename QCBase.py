@@ -132,15 +132,6 @@ class QCMethod(object):
     def __init__(self):
         self.map = {}#map of function names to variable names
         
-    def func_name(self):
-        """
-        Returns
-        -------
-        str
-            name of caller
-        """
-        return sys._getframe(1).f_code.co_name
-    
     def add_variable(self, func_name, var_name):
         """ Registers variable to the `out.results` ParseContainer"""
         self.map[func_name] = var_name
@@ -174,32 +165,14 @@ class GenFormatter(logging.Formatter):
     def format(self, record):
         formatter = self.formatters.get(record.levelno, self.default_formatter)
         return formatter.format(record)
-# TODO: finish this
-#class Printer(object):
-#    """ Regulates output of the CompChemParser module """
-#    out_basename = "CCParser"
-#    out_extension = "log"
-#    
-#    def __init__(self):
-#        pass
-#    
-#    def write(self, string):
-#        pass
     
 class AtomicBasis(object):
     def __init__(self, xyz, expo, coef, name=""):
-        #self.format = None
         self.name = name
         self.center = xyz
         self.exponents = expo
         self.coefficients = coef
 
-#    def __init__(self, name=None, xyz=None, expo=None, coeff=None):
-#        if name == None:
-#            pass#do something
-#        else:
-#            pass
-        
     @classmethod
     def from_file(cls, atom):
         pass
