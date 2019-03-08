@@ -24,3 +24,8 @@
 __pycache__/
 venv/
 .cache/
+
+# from 'python3 setup.py sdist bdist_wheel'
+*.egg-info/
+build/
+dist
