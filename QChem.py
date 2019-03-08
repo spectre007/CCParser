@@ -297,9 +297,9 @@ class SCF(QCMethod):
         rem2 = re.search(occp, s, re.MULTILINE)
         rem3 = re.search(virt, s, re.MULTILINE)
         if rem2:  
-            a_occ = re.findall("-?\d+\.\d+", rem2.group(0), re.M)
+            a_occ = re.findall(r"-?\d+\.\d+", rem2.group(0), re.M)
         if rem3:
-            a_virt = re.findall("-?\d+\.\d+", rem3.group(0), re.M)
+            a_virt = re.findall(r"-?\d+\.\d+", rem3.group(0), re.M)
         alpha = MolecularOrbitals(a_occ, a_virt)
         mLogger.info("molecular orbital energies",
                      extra={"Parsed" : V.mo_energies})
