@@ -24,6 +24,7 @@
 __pycache__/
 venv/
 .cache/
+.pytest_cache/
 
 # from 'python3 setup.py sdist bdist_wheel'
 *.egg-info/
