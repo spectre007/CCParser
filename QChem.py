@@ -271,7 +271,7 @@ class SCF(QCMethod):
                       "mo_energies": "Orbital Energies (a.u.)",
                       "overlap_matrix" : " Overlap Matrix",
                       "orthonorm_matrix" : " Orthonormalization Matrix",
-                      "alpha_density_matrix" : " Alpha Density Matrix",
+                      "alpha_density_matrix" : r"\s(Alpha Density Matrix|Final Alpha density matrix\.)",
                       "mo_coefficients_r" : "RESTRICTED (RHF) MOLECULAR ORBITAL COEFFICIENTS",
                       "multipole_op" : "Multipole Matrix "}
 
