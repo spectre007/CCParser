@@ -44,6 +44,8 @@ class VarNames(object):
     mo_coefficients    = "C"
     multipole_operator = "multipole_op"
     alpha_dens_mat     = "P_alpha"
+    beta_dens_mat      = "P_beta"
+    dens_mat           = "P_tot"
     n_bas        = "nbas"
     mulliken     = "mulliken"
     chelpg       = "chelpg"

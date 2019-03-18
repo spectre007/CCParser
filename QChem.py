@@ -340,6 +340,19 @@ class SCF(QCMethod):
         mLogger.info("Multipole matrix", extra={"Parsed": V.multipole_operator})
         return M
 
+class GENSCF(QCMethod):
+    """ Parse quantitites from gen_scfman """
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.hooks = {"density_matrix" : "Density Matrix\n"}
+    
+    @var_tag(V.dens_mat)
+    def density_matrix(self, i, data):
+        """ Parse density matrix
+        TODO: is that the total density?"""
+        mLogger.info("SCF density matrix", extra={"Parsed": V.dens_mat})
+        return parse_symmetric_matrix(data, i)
+
 class ADC(QCMethod):
     """ Parse adcman related quantities """
     def __init__(self):
