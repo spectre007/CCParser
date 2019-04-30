@@ -268,7 +268,8 @@ class SCF(QCMethod):
         super().__init__()# necessary for every derived class of QCMethod
         # hooks as {function_name : hook_string}
         self.hooks = {"scf_energy" : "SCF   energy in the final basis set",
-                      "mo_energies": "Orbital Energies (a.u.)",
+                      # "mo_energies": "Orbital Energies (a.u.)",
+                      "mo_energies": r"\s(Alpha|Beta) MOs(, Restricted)?",
                       "overlap_matrix" : " Overlap Matrix",
                       "orthonorm_matrix" : " Orthonormalization Matrix",
                       "alpha_density_matrix" : r"\s(Alpha Density Matrix|Final Alpha density matrix\.)",
@@ -285,25 +286,23 @@ class SCF(QCMethod):
     def mo_energies(self, i, data):
         """ Parse Hartree-Fock molecular orbital energies """
         n = 0
+        v_start, v_end = 0, 0
         while True:
-            if "------------" in data[i+2+n]:
-                n += 1
+            if "-----------" in data[i+1+n] or\
+            len(data[i+1+n]) < 3:
+                v_end = n
                 break
-            else:
-                n += 1
-        s = "".join(data[i+2:i+2+n])
-        occp = r"-- Occupied --([^A-Z]*)-- Virtual --"
-        virt = r"-- Virtual --([^A-Z]*)[-]{4,}"
-        rem2 = re.search(occp, s, re.MULTILINE)
-        rem3 = re.search(virt, s, re.MULTILINE)
-        if rem2:  
-            a_occ = re.findall(r"-?\d+\.\d+", rem2.group(0), re.M)
-        if rem3:
-            a_virt = re.findall(r"-?\d+\.\d+", rem3.group(0), re.M)
-        alpha = MolecularOrbitals(a_occ, a_virt)
+            if "-- Virtual --" in data[i+1+n]:
+                v_start = n
+            n += 1
+        occ_s = "".join(data[i+1:i+1+v_start])
+        vrt_s = "".join(data[i+1+v_start:i+1+v_end])
+        a_occ = re.findall(r"-?\d+\.\d+", occ_s, re.M)
+        a_vrt = re.findall(r"-?\d+\.\d+", vrt_s, re.M)
+        mo_obj = MolecularOrbitals(a_occ, a_vrt)
         mLogger.info("molecular orbital energies",
                      extra={"Parsed" : V.mo_energies})
-        return alpha
+        return mo_obj
 
     @var_tag(V.overlap_matrix)
     def overlap_matrix(self, i, data):
@@ -487,7 +486,7 @@ class ADC(QCMethod):
         numpy.ndarray
             Dipole moment in [a.u.]
         """
-        match = re.search(self.hooks[self.func_name()], data[i])
+        match = re.search(self.hooks["dipole_moment"], data[i])
         if match:
             mLogger.info("Dipole moment [a.u.]",
                          extra={"Parsed":V.dipole_moment})
@@ -1138,7 +1137,7 @@ class CIS(QCMethod):
         """ Parse sum of square distances to other states """
         mLogger.info("adiabatic sum of squares of distance",
                      extra={"Parsed": V.adia_ss_dist})
-        match = re.search(self.hooks[self.func_name()], data[i])
+        match = re.search(self.hooks["adiabatic_ss_dist"], data[i])
         if match:
             return [float(match.group("occ")), float(match.group("virt"))]
 
@@ -1193,7 +1192,7 @@ class CIS(QCMethod):
         """ Parse diabatic center """
         mLogger.info("adiabatic center locations",
                      extra={"Parsed": V.dia_center})
-        match = re.search(self.hooks[self.func_name()], data[i])
+        match = re.search(self.hooks["diabatic_center"], data[i])
         if match:
             all_coord = [float(c) for c in match.groups()]
             return [all_coord[:3], all_coord[3:]]
@@ -1203,6 +1202,6 @@ class CIS(QCMethod):
         """ Parse sum of square distances to other states """
         mLogger.info("diabatic sum of squares of distance",
                      extra={"Parsed": V.dia_ss_dist})
-        match = re.search(self.hooks[self.func_name()], data[i])
+        match = re.search(self.hooks["diabatic_ss_dist"], data[i])
         if match:
             return [float(match.group("occ")), float(match.group("virt"))]

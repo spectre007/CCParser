@@ -155,7 +155,9 @@ class NumpyEncoder(json.JSONEncoder):
         else:
             super().default(self, obj)
         
-class MolecularOrbitals(object):# TODO: change name? "MolecularOrbitalEnergies"
+class MolecularOrbitals(object):
+    # TODO: change name? "OrbitalEnergies"
+    # TODO: add symmetries
     """ General molecular orbital class, which has more functionality than 
         simple arrays.
     """
@@ -175,7 +177,9 @@ class MolecularOrbitals(object):# TODO: change name? "MolecularOrbitalEnergies"
         except (KeyError, TypeError) as e:
             raise ParserDataError(("Dictionary not suitable to create "
                                   "MolecularOrbitals object."))
-    
+
+    #TODO: from_string method as implicit list conversion is not great
+
     @classmethod
     def from_tuples(cls, t):
         # find first occurrence of virt
