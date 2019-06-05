@@ -99,7 +99,7 @@ class TDDFT(QCMethod):
     @var_tag(V.exc_energy_rel)
     def exc_energy_rel(self, i , data):
         """Parse excitation energy in [eV]."""
-        match = re.search(self.hooks[self.func_name()], data[i])
+        match = re.search(self.hooks["exc_energy_rel"], data[i])
         mLogger.info("relative TDDFT excitation energy/-ies [eV]",
                      extra={"Parsed": V.exc_energy_rel})
         return float(match.group("ExcEV"))
@@ -107,7 +107,7 @@ class TDDFT(QCMethod):
     @var_tag(V.state_label)
     def state_label(self, i , data):
         """Parse state label (multiplicity and symmetry group)."""
-        match = re.search(self.hooks[self.func_name()], data[i])
+        match = re.search(self.hooks["state_label"], data[i])
         mLogger.info("state multiplicity and symmetry",
                      extra={"Parsed": V.state_label})
         return match.group("Label")
@@ -115,7 +115,7 @@ class TDDFT(QCMethod):
     @var_tag(V.osc_str)
     def oscillator_strength(self, i , data):
         """Parse oscillator strength."""
-        match = re.search(self.hooks[self.func_name()], data[i])
+        match = re.search(self.hooks["oscillator_strength"], data[i])
         mLogger.info("oscillator strength",
                      extra={"Parsed": V.osc_str})
         return float(match.group("Osc"))
