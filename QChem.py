@@ -1254,7 +1254,8 @@ class CDFTCI(QCMethod):
                 "orthogonal_hamilt": "CDFT-CI Hamiltonian matrix in orthogonalized basis",
                 "nonorthogonal_dip": r"dipole [xyz] component in nonorthogonal basis",
                 "diabatic_dip": r"dipole [xyz] component in diabatic basis",
-                "adiabatic_dip": r"dipole [xyz] component in adiabatic basis"}
+                "adiabatic_dip": r"dipole [xyz] component in adiabatic basis",
+                "adiabatic_energy": r"CDFT-CI Energy state \d+"}
 
     @var_tag(V.wf_overlap)
     def overlap_matrix(self, i, data):
@@ -1295,7 +1296,12 @@ class CDFTCI(QCMethod):
                 extra={"Parsed": V.adia_dip})
         return parse_symmetric_matrix(i, data)
 
-
+    @var_tag(V.adia_energy)
+    def adiabatic_energy(self, i, data):
+        """ Parse energy of CDFT-CI adiabatic states """
+        mLogger.info("CDFT-CI energy of adiabatic state",
+                extra={"Parsed": V.adia_energy})
+        return float(data[i].split()[-1])
 
 
 
