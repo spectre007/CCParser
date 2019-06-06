@@ -1366,7 +1366,8 @@ class TDDFT(QCMethod):
         super().__init__()# necessary for every derived class of QCMethod
         self.hooks = {"dip_mom_ES": "Electron Dipole Moments of Singlet Excited State",
                 "trans_dip": r"GMH Couplings Between( Ground and)? Singlet Excited States",
-                "coupling": r"GMH Couplings Between( Ground and)? Singlet Excited States"}
+                "coupling": r"GMH Couplings Between( Ground and)? Singlet Excited States",
+                "oscillator_strength": r"Transition Moments Between( Ground and)? Singlet Excited States"}
     
     # TODO: not the same format as in other calculations... this gives
     # blocks of dipole moments instead of individual ones.
@@ -1387,8 +1388,17 @@ class TDDFT(QCMethod):
 
     @var_tag(V.sts_coupling)
     def coupling(self, i, data):
-        """ Parse coupling between states [a.u.] or [eV]"""
-        mLogger.info("coupling between states (!units!)",
+        """ Parse coupling between states [eV]"""
+        mLogger.info("coupling between states [eV]",
                 extra={"Parsed": V.sts_coupling})
         return parse_STS_table(i, data, cols=[0,1,5], fmt=[int, int, float])
+
+    # TODO: is this normal TDDFT output?
+    @var_tag(V.sts_osc_str)
+    def oscillator_strength(self, i, data):
+        """ Parse oscillator strenghts"""
+        mLogger.info("transition moment strength [a.u.]",
+                extra={"Parsed": V.sts_osc_str})
+        return parse_STS_table(i, data, cols=[0,1,5], fmt=[int, int, float])
+
 

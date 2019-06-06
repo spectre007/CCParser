@@ -112,6 +112,7 @@ class VarNames(object):
     sts_dip_mom   = "sts_dip_mom"
     sts_trans_dip = "sts_trans_dip"
     sts_coupling  = "sts_coupling"
+    sts_osc_str   = "sts_osc_str"
     
     # -- wave function analysis --
     diff_attach_mean  = "diff_attach_mean"
