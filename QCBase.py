@@ -100,6 +100,15 @@ class VarNames(object):
     dia_center   = "diabatic_center"
     dia_ss_dist  = "diabatic_ssd"
     dia_hamilt   = "diabatic_H"
+
+    # from CDFT
+    wf_overlap        = "overlap"
+    nonorthogonal_H   = "nonorth_H"
+    orthogonal_H      = "orth_H"
+    nonorthogonal_dip = "nonorth_dip"
+    dia_dip           = "diabatic_dip"
+    adia_dip          = "adiabatic_dip"
+    adia_energy       = "adiabatic_energy"
     
     # -- wave function analysis --
     diff_attach_mean  = "diff_attach_mean"
@@ -120,6 +129,7 @@ class VarNames(object):
     trans_eh_sep_mom  = "trans_eh_sep_mom"
     trans_eh_cov      = "trans_eh_cov"
     trans_eh_corr     = "trans_eh_corr"
+
 
 def var_tag(var_name):
     def var_decorator(func):

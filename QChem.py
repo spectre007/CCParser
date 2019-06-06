@@ -16,15 +16,46 @@ from .ParserTools import is_square
 # create module logger
 mLogger = logging.getLogger("CCParser.QChem")
 
-def parse_symmetric_matrix(readlin, n, asmatrix=True):
+def extract_floats(p_string):
+    """ Extracts floats from convoluted string.
+
+    Example: '1.23345-412.2451515'. The function will
+    return a list ['1.23345', '-412.2451515'].
+    If the function is not a float, a list object
+    of the original string will be returned.
+    """
+    pattern = r"[-+]?\d+\.\d+"
+    floats = re.findall(pattern, p_string)
+    if len(floats) == 0:
+        floats = [p_string]
+    return floats
+
+def clean_line_split(line_split):
+    """ Clean line split if floats are glued together """
+    # take care of index glued to float --> 1st element
+    # e.g. 1-627.1223
+    if len(line_split) == 0:
+        return []
+    first = extract_floats(line_split[0])
+    match = re.search(r"[+-]?\d+\.\d+", first[0])
+    if len(first) == 1 and match:
+        line_split[0] = line_split[0].replace(first[0], '')
+        line_split.insert(1, first[0])
+    
+    # if two matrix elements are stuck together
+    multi_list = [extract_floats(elem) for elem in line_split]
+    flattened  = [item for sublist in multi_list for item in sublist]
+    return flattened
+
+def parse_symmetric_matrix(n, readlin, asmatrix=True):
     """Parse a symmetric matrix printed columnwise 
     
     Parameters
     ----------
-    readlin : list
-        Readlines list object
     n : int
         Line number of identifier
+    readlin : list
+        Readlines list object
     asmatrix : bool
         Whether to return a numpy.matrix object or not
     
@@ -44,10 +75,11 @@ def parse_symmetric_matrix(readlin, n, asmatrix=True):
     while True:#loop over blocks
         index_ls = readlin[index_line].split()
         ncol = len(index_ls)
-        #if len(index_ls) != ncol \
+        # abort if more or zero columns or due to stop signal
         if (ncol > ncol_ref or ncol == 0) \
         or any(stop in index_ls for stop in stop_signals):
             break
+        # abort if first element is not a number
         if not index_ls[0].isdigit():
             break
         # adding rows scheme -> take line split as is
@@ -56,13 +88,19 @@ def parse_symmetric_matrix(readlin, n, asmatrix=True):
             first_batch = False
         while True: #loop over lines in one block
             line_split = readlin[index_line+j+1].split()
+            # if needed clean the split from glued floats
+            if len(line_split) != ncol+1:
+                line_split = clean_line_split(line_split)
+            # abort if incorrect number of elements or signal
             if len(line_split) != ncol+1 \
             or any(stop in line_split for stop in stop_signals):
                 break
+            # abort if first element is not a number
             if not line_split[0].isdigit():
                 break
             if first_batch:
                 matrix.append([])
+            # everything's fine? let's make a matrix
             matrix[j] += list(map(float, line_split[1:]))
             j += 1
         index_line += j+1#update index line
@@ -308,21 +346,21 @@ class SCF(QCMethod):
     def overlap_matrix(self, i, data):
         """ Parse overlap matrix S """
         mLogger.info("overlap matrix", extra={"Parsed":V.overlap_matrix})
-        return parse_symmetric_matrix(data, i)
+        return parse_symmetric_matrix(i, data)
 
     @var_tag(V.orthonorm_matrix)
     def orthonorm_matrix(self, i, data):
         """ Parse orthonormalization matrix X """
         mLogger.info("orthonormalization matrix",
                      extra={"Parsed":V.orthonorm_matrix})
-        return parse_symmetric_matrix(data, i)
+        return parse_symmetric_matrix(i, data)
 
     @var_tag(V.alpha_dens_mat)
     def alpha_density_matrix(self, i, data):
         """ Parse alpha density matrix P_alpha """
         mLogger.info("SCF alpha density matrix",
                      extra={"Parsed":V.alpha_dens_mat})
-        return parse_symmetric_matrix(data, i)
+        return parse_symmetric_matrix(i, data)
 
     @var_tag(V.mo_coefficients)
     def mo_coefficients_r(self, i, data):
@@ -335,7 +373,7 @@ class SCF(QCMethod):
     @var_tag(V.multipole_operator)
     def multipole_op(self, i, data):
         """ Parse Multipole matrix (x,x,x)."""
-        M = parse_symmetric_matrix(data, i)
+        M = parse_symmetric_matrix(i, data)
         mLogger.info("Multipole matrix", extra={"Parsed": V.multipole_operator})
         return M
 
@@ -350,7 +388,7 @@ class GENSCF(QCMethod):
         """ Parse density matrix
         TODO: is that the total density?"""
         mLogger.info("SCF density matrix", extra={"Parsed": V.dens_mat})
-        return parse_symmetric_matrix(data, i)
+        return parse_symmetric_matrix(i, data)
 
 class ADC(QCMethod):
     """ Parse adcman related quantities """
@@ -1096,7 +1134,7 @@ class FDE_ADC(QCMethod):
         return float(data[i].split()[-2])
 
 class CIS(QCMethod):
-    """ Parsing related to FDE-ADC implementation in Q-Chem """
+    """ Parsing related to CI Singles implementation in Q-Chem """
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
         self.hooks = {"exc_energies": (r"Excited state\s+(?P<state>\d+):\s*"
@@ -1205,3 +1243,59 @@ class CIS(QCMethod):
         match = re.search(self.hooks["diabatic_ss_dist"], data[i])
         if match:
             return [float(match.group("occ")), float(match.group("virt"))]
+
+
+class CDFTCI(QCMethod):
+    """ Parsing related to CDFT-CI implementation in Q-Chem """
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.hooks = {"overlap_matrix": "CDFT-CI overlap matrix",
+                "non_orthogonal_hamilt": "CDFT-CI Hamiltonian matrix in non-orthogonal basis",
+                "orthogonal_hamilt": "CDFT-CI Hamiltonian matrix in orthogonalized basis",
+                "nonorthogonal_dip": r"dipole [xyz] component in nonorthogonal basis",
+                "diabatic_dip": r"dipole [xyz] component in diabatic basis",
+                "adiabatic_dip": r"dipole [xyz] component in adiabatic basis"}
+
+    @var_tag(V.wf_overlap)
+    def overlap_matrix(self, i, data):
+        """ Parse CDFT-CI overlap matrix. """
+        mLogger.info("CDFT-CI overlap matrix", extra={"Parsed": V.wf_overlap})
+        return parse_symmetric_matrix(i, data)
+
+    @var_tag(V.nonorthogonal_H)
+    def non_orthogonal_hamilt(self, i, data):
+        """ Parse CDFT-CI Hamiltonian matrix in non-orthogonal basis."""
+        mLogger.info("CDFT-CI H in non-orth. basis", extra={"Parsed": V.nonorthogonal_H})
+        return parse_symmetric_matrix(i, data)
+
+    @var_tag(V.orthogonal_H)
+    def orthogonal_hamilt(self, i, data):
+        """ Parse CDFT-CI Hamiltonian matrix in orthogonalized basis."""
+        mLogger.info("CDFT-CI H in orthogonal basis", extra={"Parsed": V.orthogonal_H})
+        return parse_symmetric_matrix(i, data)
+    
+    @var_tag(V.nonorthogonal_dip)
+    def nonorthogonal_dip(self, i, data):
+        """ Parse x,y, or z component of dipole tensor in nonorthogonal basis"""
+        mLogger.info("dipole matrix in non-orth. basis",
+                extra={"Parsed": V.nonorthogonal_dip})
+        return parse_symmetric_matrix(i, data)
+
+    @var_tag(V.dia_dip)
+    def diabatic_dip(self, i, data):
+        """ Parse x,y, or z component of dipole tensor in diabatic basis"""
+        mLogger.info("dipole matrix in diabatic basis",
+                extra={"Parsed": V.dia_dip})
+        return parse_symmetric_matrix(i, data)
+
+    @var_tag(V.adia_dip)
+    def adiabatic_dip(self, i, data):
+        """ Parse x,y, or z component of dipole tensor in adiabatic basis"""
+        mLogger.info("dipole matrix in adiabatic basis",
+                extra={"Parsed": V.adia_dip})
+        return parse_symmetric_matrix(i, data)
+
+
+
+
+
