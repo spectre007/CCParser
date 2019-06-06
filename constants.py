@@ -7,3 +7,4 @@ Created on Mon May 29 18:11:25 2017
 """
 
 Hartree2eV = 27.21138505 #eV
+eV2Hartree = 27.21138505**(-1) #a.u.

@@ -100,7 +100,6 @@ class VarNames(object):
     dia_center   = "diabatic_center"
     dia_ss_dist  = "diabatic_ssd"
     dia_hamilt   = "diabatic_H"
-
     # from CDFT
     wf_overlap        = "overlap"
     nonorthogonal_H   = "nonorth_H"
@@ -109,6 +108,10 @@ class VarNames(object):
     dia_dip           = "diabatic_dip"
     adia_dip          = "adiabatic_dip"
     adia_energy       = "adiabatic_energy"
+    # State-to-state
+    sts_dip_mom   = "sts_dip_mom"
+    sts_trans_dip = "sts_trans_dip"
+    sts_coupling  = "sts_coupling"
     
     # -- wave function analysis --
     diff_attach_mean  = "diff_attach_mean"

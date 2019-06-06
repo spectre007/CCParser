@@ -12,6 +12,7 @@ from .ParserData import MolecularOrbitals, Amplitudes
 from .QCBase import QCMethod, VarNames as V
 from .QCBase import var_tag
 from .ParserTools import is_square
+from .constants import eV2Hartree
 
 # create module logger
 mLogger = logging.getLogger("CCParser.QChem")
@@ -163,6 +164,62 @@ def parse_AO_matrix(readlin, n, asmatrix=True):
         return np.asmatrix(matrix)
     else:
         return matrix
+
+def parse_STS_table(i, data, cols=[0,1], fmt=[int, float]):
+    """ Parse table in STSman format.
+
+       Electron Dipole Moments of Singlet Excited State
+     -----------------------------------------------------
+        State     X           Y           Z(a.u.)
+     -----------------------------------------------------
+           1     6.500046    1.125952    1.637921
+    """
+    # clean up input
+    if type(cols) == int:
+        cols = [cols]
+    if type(fmt) != list:
+        fmt = [fmt]
+
+    # find out units from header
+    i_header = i+2 #line containing table header
+    # header = data[i_header].split()
+    # units = []
+    # mark = (-1, "n/a")
+    # for p, head in enumerate(reversed(header)):
+    #     if head == "State":
+    #         units.append("n/a")
+    #     elif head == "States":
+    #         units += ["n/a", "n/a"]
+    #     elif "(eV)" in head:
+    #         mark = (p, "eV")
+    #         units.append("eV")
+    #     elif "(a.u.)":
+    #         mark = (p, "n/a")
+    #         units.append("n/a")
+    #     elif mark[0] >= 0:
+    #         units.append(mark[1])
+    # units = [u for u in reversed(units)]
+
+    i_a      = i_header+2 #first line of table
+    j = 0
+    values = []
+    while True:
+        if "-----" in data[i_a+j]:
+            break
+        line_split = data[i_a+j].split()
+        # select columns of interest
+        selection  = [line_split[m] for m in cols]
+        # sel_units  = [units[m] for m in cols]
+        # convert string to specified format
+        values.append([conv(selection[m]) for m, conv in enumerate(fmt)])
+        # if necessary convert unit to atomic units
+        # for m, u in enumerate(sel_units):
+        #     if u == "n/a":
+        #         continue
+        #     elif u == "eV":
+        #         values[j][m] = values[j][m]*eV2Hartree
+        j += 1
+    return values
 
 def parse_inline_vec(line, asarray=True):
     """ Extracts a vector of the format
@@ -1303,5 +1360,35 @@ class CDFTCI(QCMethod):
                 extra={"Parsed": V.adia_energy})
         return float(data[i].split()[-1])
 
+class TDDFT(QCMethod):
+    """ Parsing related to TDDFT implementation in Q-Chem """
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.hooks = {"dip_mom_ES": "Electron Dipole Moments of Singlet Excited State",
+                "trans_dip": r"GMH Couplings Between( Ground and)? Singlet Excited States",
+                "coupling": r"GMH Couplings Between( Ground and)? Singlet Excited States"}
+    
+    # TODO: not the same format as in other calculations... this gives
+    # blocks of dipole moments instead of individual ones.
+    @var_tag(V.sts_dip_mom)
+    def dip_mom_ES(self, i, data):
+        """ Parse dipole moments [a.u.] of singlet excited states"""
+        mLogger.info("singlet ES dipole moment",
+                extra={"Parsed": V.sts_dip_mom})
+        return parse_STS_table(i, data, cols=[1,2,3], fmt=[float, float, float])
 
+    @var_tag(V.sts_trans_dip)
+    def trans_dip(self, i, data):
+        """ Parse transition dipole moments [a.u.] between states"""
+        mLogger.info("transition dipole moments [a.u.]",
+                extra={"Parsed":V.sts_trans_dip})
+        return parse_STS_table(i, data, cols=[0,1,2,3,4],
+                fmt=[int, int, float, float, float])
+
+    @var_tag(V.sts_coupling)
+    def coupling(self, i, data):
+        """ Parse coupling between states [a.u.] or [eV]"""
+        mLogger.info("coupling between states (!units!)",
+                extra={"Parsed": V.sts_coupling})
+        return parse_STS_table(i, data, cols=[0,1,5], fmt=[int, int, float])
 
