@@ -22,8 +22,6 @@ class VarNames(object):
     exc_energy_rel  = "exc_energy_rel"
     mo_energies     = "mo_energies"
     nuc_repulsion   = "nuc_rep"
-    sapt0_total     = "sapt0_total"
-    sapt_components = "sapt_comp"
     
     # -- Excited States --
     osc_str           = "osc_str"
@@ -133,6 +131,22 @@ class VarNames(object):
     trans_eh_sep_mom  = "trans_eh_sep_mom"
     trans_eh_cov      = "trans_eh_cov"
     trans_eh_corr     = "trans_eh_corr"
+
+    # -- Energy decomposition analysis --
+    almo_frz  = "almo_frz"
+    almo_pol  = "almo_pol"
+    almo_ct   = "almo_ct"
+    almo_disp = "almo_disp"
+    almo_tot  = "almo_tot"
+    almo_cls_elec  = "almo_cls_elec"
+    almo_cls_pauli = "almo_cls_pauli"
+    # almo_components = "almo_comp"
+    # almo_total      = "almo_tot"
+    sapt0_total     = "sapt0_tot"
+    sapt_components = "sapt_comp"
+
+    # -- Input variables --
+    params = "input"
 
 
 def var_tag(var_name):

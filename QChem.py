@@ -1401,4 +1401,170 @@ class TDDFT(QCMethod):
                 extra={"Parsed": V.sts_osc_str})
         return parse_STS_table(i, data, cols=[0,1,5], fmt=[int, int, float])
 
+class ALMO(QCMethod):
+    """ Parse general ALMO output """
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.hooks = dict.fromkeys(["SCF_frz_simple", "SCF_pol_simple",
+            "SCF_ct_simple", "SCF_tot_simple"],
+                "SCF only Simplified EDA Summary (kJ/mol)")
+        self.hooks.update(dict.fromkeys(["MP2_frz_corr", "MP2_pol_corr",
+            "MP2_disp_corr", "MP2_ct_corr", "MP2_tot_corr"],
+            "MP2 only EDA results (Hartree)"))
+        self.hooks.update(dict.fromkeys(["E_frz", "E_pol", "E_disp", "E_ct",
+            "E_tot"], "Total EDA results (Hartree)"))
+        self.hooks["E_cls_elec"]  = "E_cls_elec  (CLS ELEC)  (kJ/mol)"
+        self.hooks["E_cls_pauli"] = "E_cls_pauli (CLS PAULI) (kJ/mol)"
+        self.hooks["SCF_frz"] = "E_frz (kJ/mol) ="
+        self.hooks["SCF_pol"] = "E_pol (kJ/mol) ="
+        self.hooks["SCF_ct"]  = r"E_vct \(kJ/mol\) = ([-]?\d+\.\d+) \(CP-corrected\)"
+        self.hooks["SCF_tot"] = r"E_int \(kJ/mol\) = ([-]?\d+\.\d+) \(CP-corrected\)"
+
+    @var_tag(V.almo_cls_elec)
+    def E_cls_elec(self, i, data):
+        """ Parse classical electrostatics component of frozen energy (SCF)"""
+        mLogger.info("classical electrostatic component of E_frz [kJ/mol]",
+                extra={"Parsed" : V.almo_cls_elec})
+        return float(data[i].split()[-1])
+
+    @var_tag(V.almo_cls_pauli)
+    def E_cls_pauli(self, i, data):
+        """ Parse exchange component of frozen energy (SCF)"""
+        mLogger.info("exchange component of E_frz [kJ/mol]",
+                extra={"Parsed" : V.almo_cls_pauli})
+        return float(data[i].split()[-1])
+
+    @var_tag(V.almo_frz)
+    def SCF_frz(self, i, data):
+        """ Parse frozen energy from SCF EDA2 summary [kJ/mol]"""
+        mLogger.info("ALMO-SCF frozen energy [kJ/mol]",
+                extra={"Parsed" : V.almo_frz})
+        return float(data[i].split()[-1])
+
+    @var_tag(V.almo_pol)
+    def SCF_pol(self, i, data):
+        """ Parse frozen energy from SCF EDA2 summary [kJ/mol] """
+        mLogger.info("ALMO-SCF polarization energy [kJ/mol]",
+                extra={"Parsed" : V.almo_pol})
+        return float(data[i].split()[-1])
+
+    @var_tag(V.almo_ct)
+    def SCF_ct(self, i, data):
+        """ Parse charge-transfer energy from SCF EDA2 summary [kJ/mol] """
+        mLogger.info("ALMO-SCF charge-transfer energy (incl. BSSE corr.) [kJ/mol]",
+                extra={"Parsed" : V.almo_ct})
+        return float(data[i].split()[-2])
+
+    @var_tag(V.almo_tot)
+    def SCF_tot(self, i, data):
+        """ Parse interaction energy from simplified SCF EDA summary [kJ/mol] """
+        mLogger.info("ALMO-SCF total interaction energy [kJ/mol]",
+                extra={"Parsed" : V.almo_tot})
+        return float(data[i].split()[-2])
+
+    @var_tag(V.almo_frz)
+    def SCF_frz_simple(self, i, data):
+        """ Parse frozen energy from simplified SCF EDA summary [kJ/mol] """
+        mLogger.info("ALMO-SCF frozen energy [kJ/mol]",
+                extra={"Parsed" : V.almo_frz})
+        return float(data[i+3].split()[1])
+
+    @var_tag(V.almo_pol)
+    def SCF_pol_simple(self, i, data):
+        """ Parse frozen energy from simplified SCF EDA summary [kJ/mol] """
+        mLogger.info("ALMO-SCF polarization energy [kJ/mol]",
+                extra={"Parsed" : V.almo_pol})
+        return float(data[i+4].split()[1])
+
+    @var_tag(V.almo_ct)
+    def SCF_ct_simple(self, i, data):
+        """ Parse charge-transfer energy from simplified SCF EDA summary [kJ/mol] """
+        mLogger.info("ALMO-SCF charge-transfer energy (incl. BSSE corr.) [kJ/mol]",
+                extra={"Parsed" : V.almo_ct})
+        return float(data[i+5].split()[2])
+
+    @var_tag(V.almo_tot)
+    def SCF_tot_simple(self, i, data):
+        """ Parse interaction energy from simplified SCF EDA summary [kJ/mol] """
+        mLogger.info("ALMO-SCF total interaction energy [kJ/mol]",
+                extra={"Parsed" : V.almo_tot})
+        return float(data[i+6].split()[1])
+
+    @var_tag(V.almo_frz)
+    def MP2_frz_corr(self, i, data):
+        """ Parse correlation contribution to frozen energy (MP2) [Hartree] """
+        mLogger.info("ALMO correlation contribution (MP2) to E_frz [a.u.]",
+                extra={"Parsed" : V.almo_frz})
+        return float(data[i+1].split()[1])
+
+    @var_tag(V.almo_pol)
+    def MP2_pol_corr(self, i, data):
+        """ Parse correlation contribution to polarization energy (MP2) [Hartree] """
+        mLogger.info("ALMO correlation contribution (MP2) to E_pol [a.u.]",
+                extra={"Parsed" : V.almo_pol})
+        return float(data[i+2].split()[1])
+
+    @var_tag(V.almo_disp)
+    def MP2_disp_corr(self, i, data):
+        """ Parse correlation contribution to dispersion energy (MP2) [Hartree] """
+        mLogger.info("ALMO correlation contribution (MP2) to E_disp [a.u.]",
+                extra={"Parsed" : V.almo_disp})
+        return float(data[i+3].split()[1])
+
+    @var_tag(V.almo_ct)
+    def MP2_ct_corr(self, i, data):
+        """ Parse correlation contribution to charge-transfer energy (MP2) [Hartree] """
+        mLogger.info("ALMO correlation contribution (MP2) to E_ct [a.u.]",
+                extra={"Parsed" : V.almo_ct})
+        return float(data[i+4].split()[1])
+
+    @var_tag(V.almo_tot)
+    def MP2_tot_corr(self, i, data):
+        """ Parse correlation contribution to total interaction energy (MP2) [Hartree] """
+        mLogger.info("ALMO correlation contribution (MP2) to E_int [a.u.]",
+                extra={"Parsed" : V.almo_tot})
+        return float(data[i+5].split()[2])
+
+    @var_tag(V.almo_frz)
+    def E_frz(self, i, data):
+        """ Parse ALMO-EDA frozen energy [Hartree] """
+        mLogger.info("ALMO-EDA frozen energy E_frz [a.u.]",
+                extra={"Parsed" : V.almo_frz})
+        return float(data[i+1].split()[1])
+
+    @var_tag(V.almo_pol)
+    def E_pol(self, i, data):
+        """ Parse ALMO-EDA polarization energy [Hartree] """
+        mLogger.info("ALMO-EDA polarization energy E_pol [a.u.]",
+                extra={"Parsed" : V.almo_pol})
+        return float(data[i+2].split()[1])
+
+    @var_tag(V.almo_disp)
+    def E_disp(self, i, data):
+        """ Parse ALMO-EDA dispersion energy [Hartree] """
+        mLogger.info("ALMO-EDA dispersion energy E_disp [a.u.]",
+                extra={"Parsed" : V.almo_disp})
+        return float(data[i+3].split()[1])
+
+    @var_tag(V.almo_ct)
+    def E_ct(self, i, data):
+        """ Parse ALMO-EDA charge-transfer energy (incl. CP-corr) [Hartree] """
+        mLogger.info("ALMO-EDA charge-transfer energy E_ct (incl. BSSE corr.) [a.u.]",
+                extra={"Parsed" : V.almo_ct})
+        return float(data[i+4].split()[1])
+
+    # @var_tag(V.almo_ct)
+    # def E_ct_nobsse(self, i, data):
+    #     """ Parse ALMO-EDA charge-transfer energy (excl. CP-corr) [Hartree] """
+    #     mLogger.info("ALMO-EDA charge-transfer energy E_ct (excl. BSSE corr.) [a.u.]",
+    #             extra={"Parsed" : V.almo_frz})
+    #     return float(data[i+4].split()[1])
+
+    @var_tag(V.almo_tot)
+    def E_tot(self, i, data):
+        """ Parse total interaction energy [Hartree] """
+        mLogger.info("ALMO-EDA total interaction energy [a.u.]",
+                extra={"Parsed" : V.almo_tot})
+        return float(data[i+5].split()[2])
+
 
