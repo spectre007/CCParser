@@ -51,18 +51,19 @@ class SAPT(QCMethod):
         keys = ["Electrostatics", "Exchange", "Induction", "Dispersion"]
         l = [0,0,0,0]
         n = 0
-        if self.hooks["sapt_components"] in data[n]:
-            while True:#dirrrty
-                curr_line = data[i+n+1].split()
-                if len(curr_line) > 0:
-                    if "Total" in data[i+n+1].split()[0]:
-                        break
-                    descriptor = data[i+n+1].split()[0]
-                    if descriptor in keys:
-                        l[keys.index(descriptor)] = float(data[i+n+1].split()[1])
-                n += 1
+        while True:#dirrrty
+            curr_line = data[i+n+1].split()
+            if len(curr_line) > 0:
+                if "Total" in data[i+n+1].split()[0]:
+                    break
+                descriptor = data[i+n+1].split()[0]
+                if descriptor in keys:
+                    l[keys.index(descriptor)] = float(data[i+n+1].split()[1])
+            n += 1
         mLogger.info("SAPT components in [mEh]",
                      extra={"Parsed":V.sapt_components})
+        if l == [0, 0, 0, 0]:
+            raise ValueError("Could not determine SAPT0 components!")
         return l
 
     @var_tag(V.sapt0_total)
