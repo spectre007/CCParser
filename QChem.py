@@ -811,6 +811,8 @@ class FDE_ADC(QCMethod):
                       "V_xc_nad"     : "# using -UPDATED- potential",
                       "V_t_nad_ref"  : "# using -REFERENCE- potential",
                       "V_t_nad"      : "# using -UPDATED- potential",
+                      "X_xc_nad"     : "Dif XC Kernel Energy:",
+                      "X_t_nad"      : "Dif T  Kernel Energy:",
                       "J_int"        : "rho_A <-> rho_B:",
                       "AnucB"        : "rho_A <-> Nuc_B:",
                       "BnucA"        : "rho_B <-> Nuc_A:",
@@ -1138,6 +1140,44 @@ class FDE_ADC(QCMethod):
                      extra={"Parsed":V.fde_int_Ts_nad})
         return float(data[i+2].split()[-2])
 
+    @var_tag(V.fde_X_xc_nad)
+    def X_xc_nad(self, i, data):
+        """Parses kernel contribution of the non-additive xc
+        potential obtained with rhoA_emb (HF):
+        
+        :math::
+            r`\int \int \rho_{A}_{diff} \frac{\partial^2 v_{xc}^{nad}[\rho_{A}^{emb,HF},
+            \rho_{B}](\mathbf{r})}{\partial rho_A^2}`
+        
+        
+        Returns
+        -------
+        float
+        """
+        mLogger.info(("expectation value of non-additive kinetic UPDATED "
+                      "potential"),
+                     extra={"Parsed":V.fde_X_xc_nad})
+        return float(data[i].split()[-2])
+    
+    @var_tag(V.fde_X_t_nad)
+    def X_t_nad(self, i, data):
+        """Parses kernel contribution of the non-additive kinetic
+        potential obtained with rhoA_emb (HF):
+        
+        :math::
+            r`\int \int \rho_{A}_{diff} \frac{\partial^2 v_{Ts}^{nad}[\rho_{A}^{emb,HF},
+            \rho_{B}](\mathbf{r})}{\partial rho_A^2}`
+        
+        
+        Returns
+        -------
+        float
+        """
+        mLogger.info(("expectation value of non-additive kinetic UPDATED "
+                      "potential"),
+                     extra={"Parsed":V.fde_X_t_nad})
+        return float(data[i].split()[-2])
+    
     @var_tag(V.fde_J)
     def J_int(self, i, data):
         """Parses Coulomb repulsion of rhoA and rhoB.
