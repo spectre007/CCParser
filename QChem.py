@@ -1405,9 +1405,10 @@ class ALMO(QCMethod):
     """ Parse general ALMO output """
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
-        self.hooks = dict.fromkeys(["SCF_frz_simple", "SCF_pol_simple",
-            "SCF_ct_simple", "SCF_tot_simple"],
-                "SCF only Simplified EDA Summary (kJ/mol)")
+        self.hooks = {}
+        # self.hooks = dict.fromkeys(["SCF_frz_simple", "SCF_pol_simple",
+        #     "SCF_ct_simple", "SCF_tot_simple"],
+        #         "SCF only Simplified EDA Summary (kJ/mol)")
         self.hooks.update(dict.fromkeys(["MP2_frz_corr", "MP2_pol_corr",
             "MP2_disp_corr", "MP2_ct_corr", "MP2_tot_corr"],
             "MP2 only EDA results (Hartree)"))
@@ -1419,6 +1420,13 @@ class ALMO(QCMethod):
         self.hooks["SCF_pol"] = "E_pol (kJ/mol) ="
         self.hooks["SCF_ct"]  = r"E_vct \(kJ/mol\) = ([-]?\d+\.\d+) \(CP-corrected\)"
         self.hooks["SCF_tot"] = r"E_int \(kJ/mol\) = ([-]?\d+\.\d+) \(CP-corrected\)"
+        # simplified EDA summary
+        # self.hooks["prep_simple"] = r"PREPARATION\s+(-?\d+\.\d+)"
+        self.hooks["frz_simple"]  = r"FROZEN\s+(-?\d+\.\d+)"
+        self.hooks["disp_simple"] = r"DISPERSION\s+(-?\d+\.\d+)"
+        self.hooks["pol_simple"]  = r"POLARIZATION\s+(-?\d+\.\d+)"
+        self.hooks["ct_simple"]   = r"CHARGE TRANSFER\s+(-?\d+\.\d+)"
+        self.hooks["tot_simple"]   = r"TOTAL\s+(-?\d+\.\d+)\s+\(.+\)"
 
     @var_tag(V.almo_cls_elec)
     def E_cls_elec(self, i, data):
@@ -1463,32 +1471,53 @@ class ALMO(QCMethod):
         return float(data[i].split()[-2])
 
     @var_tag(V.almo_frz)
-    def SCF_frz_simple(self, i, data):
+    def frz_simple(self, i, data):
         """ Parse frozen energy from simplified SCF EDA summary [kJ/mol] """
         mLogger.info("ALMO-SCF frozen energy [kJ/mol]",
                 extra={"Parsed" : V.almo_frz})
-        return float(data[i+3].split()[1])
+        # return float(data[i+3].split()[1])
+        match = re.search(self.hooks["frz_simple"], data[i])
+        if match:
+            return float(match.groups()[0])
+
+    @var_tag(V.almo_disp)
+    def disp_simple(self, i, data):
+        """ Parse dispersion energy from simplified EDA summary [kJ/mol] """
+        mLogger.info("ALMO-SCF dispersion energy [kJ/mol]",
+                extra={"Parsed" : V.almo_disp})
+        match = re.search(self.hooks["disp_simple"], data[i])
+        if match:
+            return float(match.groups()[0])
 
     @var_tag(V.almo_pol)
-    def SCF_pol_simple(self, i, data):
-        """ Parse frozen energy from simplified SCF EDA summary [kJ/mol] """
+    def pol_simple(self, i, data):
+        """ Parse polarization energy from simplified EDA summary [kJ/mol] """
         mLogger.info("ALMO-SCF polarization energy [kJ/mol]",
                 extra={"Parsed" : V.almo_pol})
-        return float(data[i+4].split()[1])
+        # return float(data[i+4].split()[1])
+        match = re.search(self.hooks["pol_simple"], data[i])
+        if match:
+            return float(match.groups()[0])
 
     @var_tag(V.almo_ct)
-    def SCF_ct_simple(self, i, data):
-        """ Parse charge-transfer energy from simplified SCF EDA summary [kJ/mol] """
+    def ct_simple(self, i, data):
+        """ Parse charge-transfer energy from simplified EDA summary [kJ/mol] """
         mLogger.info("ALMO-SCF charge-transfer energy (incl. BSSE corr.) [kJ/mol]",
                 extra={"Parsed" : V.almo_ct})
-        return float(data[i+5].split()[2])
+        # return float(data[i+5].split()[2])
+        match = re.search(self.hooks["ct_simple"], data[i])
+        if match:
+            return float(match.groups()[0])
 
     @var_tag(V.almo_tot)
-    def SCF_tot_simple(self, i, data):
-        """ Parse interaction energy from simplified SCF EDA summary [kJ/mol] """
+    def tot_simple(self, i, data):
+        """ Parse interaction energy from simplified EDA summary [kJ/mol] """
         mLogger.info("ALMO-SCF total interaction energy [kJ/mol]",
                 extra={"Parsed" : V.almo_tot})
-        return float(data[i+6].split()[1])
+        # return float(data[i+6].split()[1])
+        match = re.search(self.hooks["tot_simple"], data[i])
+        if match:
+            return float(match.groups()[0])
 
     @var_tag(V.almo_frz)
     def MP2_frz_corr(self, i, data):
