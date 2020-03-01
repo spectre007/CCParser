@@ -17,6 +17,12 @@ class VarNames(object):
     # -- Energies --
     scf_energy      = "scf_energy"
     mp_energy       = "mp_energy"
+    mp_aaaa         = "mp_aaaa"          # mp2 same spin (alpha) component
+    mp_bbbb         = "mp_bbbb"          # mp2 same spin (beta) component
+    mp_abab         = "mp_abab"          # mp2 opposite spin component
+    mp_nonBrill     = "mp_nonBrill"      # mp2 non-brillouin singles
+    mp_ss           = "mp_ss"            # mp2 total same spin corr
+    mp_os           = "mp_os"            # mp2 total opposite spin corr
     mp_correction   = "mp_correction"
     exc_energy_abs  = "exc_energy_abs"
     exc_energy_rel  = "exc_energy_rel"

@@ -1596,4 +1596,77 @@ class ALMO(QCMethod):
                 extra={"Parsed" : V.almo_tot})
         return float(data[i+5].split()[2])
 
+class RIMP2(QCMethod):
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.hooks = {
+                "mp2_aaaa": "aaaa    correlation energy =",
+                "mp2_abab": "abab    correlation energy =",
+                "mp2_bbbb": "bbbb    correlation energy =",
+                "mp2_nbs": "non-Brillouin singles      =",
+                "mp2_tot_ss": "total same-spin energy     =",
+                "mp2_tot_os": "total opposite-spin energy =",
+                "mp2_corr": "Total  RIMP2   correlation energy =",
+                "mp2_tot": "RIMP2         total energy ="}
+
+    @var_tag(V.mp_aaaa)
+    def mp2_aaaa(self, i, data):
+        """ Parse MP2 same spin component (aaaa) [Hartree] """
+        mLogger.info("MP2 same spin aaaa [a.u.]",
+                extra={"Parsed" : V.mp_aaaa})
+        return float(data[i].split()[-2])
+
+    @var_tag(V.mp_bbbb)
+    def mp2_bbbb(self, i, data):
+        """ Parse MP2 same spin component (bbbb) [Hartree] """
+        mLogger.info("MP2 same spin bbbb [a.u.]",
+                extra={"Parsed" : V.mp_bbbb})
+        return float(data[i].split()[-2])
+
+    @var_tag(V.mp_abab)
+    def mp2_abab(self, i, data):
+        """ Parse MP2 same spin component (abab) [Hartree] """
+        mLogger.info("MP2 same spin abab [a.u.]",
+                extra={"Parsed" : V.mp_abab})
+        return float(data[i].split()[-2])
+
+    @var_tag(V.mp_nonBrill)
+    def mp2_nbs(self, i, data):
+        """ Parse MP2 non-Brillouin singles [Hartree] """
+        mLogger.info("MP2 non-Brillouin singles [a.u.]",
+                extra={"Parsed" : V.mp_nonBrill})
+        return float(data[i].split()[-2])
+
+    @var_tag(V.mp_ss)
+    def mp2_tot_ss(self, i, data):
+        """ Parse MP2 total same spin [Hartree] """
+        mLogger.info("MP2 total same spin energy [a.u.]",
+                extra={"Parsed" : V.mp_ss})
+        return float(data[i].split()[-2])
+
+    @var_tag(V.mp_os)
+    def mp2_tot_os(self, i, data):
+        """ Parse MP2 total opposite spin [Hartree] """
+        mLogger.info("MP2 total opposite spin energy [a.u.]",
+                extra={"Parsed" : V.mp_os})
+        return float(data[i].split()[-2])
+
+    @var_tag(V.mp_correction)
+    def mp2_corr(self, i, data):
+        """ Parse MP2 correlation energy [Hartree] """
+        mLogger.info("MP2 correlation energy [a.u.]",
+                extra={"Parsed" : V.mp_correction})
+        return float(data[i].split()[-2])
+
+    @var_tag(V.mp_energy)
+    def mp2_tot(self, i, data):
+        """ Parse MP2 total energy [Hartree] """
+        mLogger.info("MP2 total energy [a.u.]",
+                extra={"Parsed" : V.mp_energy})
+        return float(data[i].split()[-2])
+
+
+
+
+
 
