@@ -166,7 +166,7 @@ class MolecularOrbitals(object):
         self.virt   = list(map(float, v))
         self.n_occ  = len(o)
         self.n_virt = len(v)
-        self.n_orb  = self.n_occ + self.n_virt
+        self.n_mo  = self.n_occ + self.n_virt
         self.homo   = max(self.occ ) if self.n_occ  > 0 else 0
         self.lumo   = min(self.virt) if self.n_virt > 0 else 0
         
@@ -191,7 +191,7 @@ class MolecularOrbitals(object):
     
     def __str__(self):
         n1 = [i for i in range(1, self.n_occ+1)]
-        n2 = [i for i in range(self.n_occ +1, self.n_orb+1)]
+        n2 = [i for i in range(self.n_occ +1, self.n_mo+1)]
         s = "\n"
         for i in range(0, len(self.occ), 10):
             s += 4*" " + " ".join("{:>8}".format(j) for j in n1[i:i+10])+"\n"

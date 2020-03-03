@@ -39,20 +39,29 @@ class VarNames(object):
     # -- Vibrational Frequencies --
     vib_freq      = "freq"
     vib_intensity = "IR_int"
+
+    # -- Orbital spaces --
+    n_bas     = "nbas"
+    n_occ     = "n_occ"
+    # n_occb    = "n_occb"
+    n_frz_occ = "n_frz_occ" #may need to be reworked for USCF
     
-    # -- General --
-    xyz_coordinates    = "xyz"
-    pt_order           = "pt_order"
+    # -- AO matrices --
     overlap_matrix     = "S"
     orthonorm_matrix   = "X"
     mo_coefficients    = "C"
-    multipole_operator = "multipole_op"
     alpha_dens_mat     = "P_alpha"
     beta_dens_mat      = "P_beta"
     dens_mat           = "P_tot"
-    n_bas        = "nbas"
+    multipole_operator = "multipole_op"
+
+    # -- Charges --
     mulliken     = "mulliken"
     chelpg       = "chelpg"
+
+    # -- General --
+    xyz_coordinates    = "xyz"
+    pt_order           = "pt_order"
     has_finished = "has_finished"
     basis_name   = "bas_name"
     state_label  = "state_label"

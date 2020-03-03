@@ -267,7 +267,7 @@ class General(QCMethod):
         # hooks as {function_name : hook_string}
         self.hooks = {'version' : r'Q-Chem\s*(\d+\.\d+), Q-Chem, Inc.,',
                 "xyz_coordinates" : "Standard Nuclear Orientation (Angstroms)",
-                "electrons" : r"There are \w+(?P<alpha>\d+) alpha and \w+(?P<beta>\d+) beta electrons",
+                "electrons" : r"There are \s+(?P<alpha>\d+) alpha and \s+(?P<beta>\d+) beta electrons",
                 "nuc_rep" : "Nuclear Repulsion Energy =",
                 "n_basis" : r"There are (?P<shells>\d+) shells and (?P<bsf>\d+) basis functions",
                 "mulliken": "Ground-State Mulliken Net Atomic Charges",
@@ -297,6 +297,14 @@ class General(QCMethod):
         xyz_dat = [[x[0]]+list(map(float,x[1:])) for x in xyz_dat]
         return xyz_dat
     
+    @var_tag(V.n_occ)
+    def electrons(self, i, data):
+        """ Parse number of occupied alpha and beta electrons"""
+        match = re.search(self.hooks["electrons"], data[i])
+        if match:
+            mLogger.info("number of occupied MOs (a, b)", extra={"Parsed":V.n_occ})
+            return tuple(map(int, match.groups()))
+
     @var_tag(V.nuc_repulsion)
     def nuc_rep(self, i, data):
         """ Get nuclear repulsion energy [a.u.] """
@@ -1607,7 +1615,8 @@ class RIMP2(QCMethod):
                 "mp2_tot_ss": "total same-spin energy     =",
                 "mp2_tot_os": "total opposite-spin energy =",
                 "mp2_corr": "Total  RIMP2   correlation energy =",
-                "mp2_tot": "RIMP2         total energy ="}
+                "mp2_tot": "RIMP2         total energy =",
+                "n_frz_occ": "# of frozen core orbitals:"}
 
     @var_tag(V.mp_aaaa)
     def mp2_aaaa(self, i, data):
@@ -1665,6 +1674,12 @@ class RIMP2(QCMethod):
                 extra={"Parsed" : V.mp_energy})
         return float(data[i].split()[-2])
 
+    @var_tag(V.n_frz_occ)
+    def n_frz_occ(self, i, data):
+        """ Number of frozen occupied orbitals """
+        mLogger.info("Number of frozen occupied MOs",
+                extra={"Parsed" : V.n_frz_occ})
+        return int(data[i].split()[-1])
 
 
 
