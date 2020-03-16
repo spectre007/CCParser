@@ -1712,10 +1712,6 @@ class GeometryOpt(QCMethod):
             if len(line.split()) > 0:
                 xyz.append(line.split()[1:])
             n +=1
-        print("n = ", n)
-        print(xyz)
-        # for k in range(n):
-        #     xyz.append(data[i+5+k].split()[1:])
         xyz = [[x[0]]+list(map(float,x[1:])) for x in xyz]
         return xyz
 
