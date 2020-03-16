@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 import sys
 import logging
-#import numpy as np
 """
 Created on Thu Jun 15 04:48:19 2017
 
-@author: alex
+@author: Alexander Zech
 """
 
 class VarNames(object):
@@ -28,14 +27,18 @@ class VarNames(object):
     exc_energy_rel  = "exc_energy_rel"
     mo_energies     = "mo_energies"
     nuc_repulsion   = "nuc_rep"
-    
+
     # -- Excited States --
     osc_str           = "osc_str"
     amplitudes        = "ampl"
     total_dipole      = "tot_dip"
     dipole_moment     = "dip_moment"
     transition_dipole = "trans_dip"
-    
+
+    # -- Geometry Optimization --
+    final_energy = "final_energy"
+    final_xyz    = "final_xyz"
+
     # -- Vibrational Frequencies --
     vib_freq      = "freq"
     vib_intensity = "IR_int"
@@ -45,7 +48,7 @@ class VarNames(object):
     n_occ     = "n_occ"
     # n_occb    = "n_occb"
     n_frz_occ = "n_frz_occ" #may need to be reworked for USCF
-    
+
     # -- AO matrices --
     overlap_matrix     = "S"
     orthonorm_matrix   = "X"
@@ -66,10 +69,10 @@ class VarNames(object):
     basis_name   = "bas_name"
     state_label  = "state_label"
     version      = "version"
-    
+
     # -- Issues & Warnings --
     has_converged = "state_cnvgd"
-    
+
     # -- Frozen-Density Embedding --
     fde_omega_ref = "fde_omega_ref"
     fde_omega_I   = "fde_omega_I"
@@ -105,7 +108,7 @@ class VarNames(object):
     fde_AnucB = "AnucB"#rhoA * vB
     fde_BnucA = "BnucA"#rhoB * vA
     fde_VNN   = "V_AB"
-    
+
     # -- electronic coupling --
     adia_center  = "adiabatic_center"
     adia_ss_dist = "adiabatic_ssd"
@@ -126,7 +129,7 @@ class VarNames(object):
     sts_trans_dip = "sts_trans_dip"
     sts_coupling  = "sts_coupling"
     sts_osc_str   = "sts_osc_str"
-    
+
     # -- wave function analysis --
     diff_attach_mean  = "diff_attach_mean"
     diff_detach_mean  = "diff_detach_mean"
@@ -176,14 +179,14 @@ class QCMethod(object):
     """ Base class for Quantum Chemistry methods """
     def __init__(self):
         self.map = {}#map of function names to variable names
-        
+
     def add_variable(self, func_name, var_name):
         """ Registers variable to the `out.results` ParseContainer"""
         self.map[func_name] = var_name
-    
+
     def print_parsed(self, var_name, description):
         """Print short parsing information
-        
+
         Parameters
         ----------
         var_name : string
@@ -195,7 +198,7 @@ class QCMethod(object):
 
 class GenFormatter(logging.Formatter):
     """ Generic Formatter for logging.Handler
-    
+
     (see https://stackoverflow.com/questions/1343227/
     can-pythons-logging-format-be-modified-depending-on-the-message-log-level)
     """
@@ -210,7 +213,7 @@ class GenFormatter(logging.Formatter):
     def format(self, record):
         formatter = self.formatters.get(record.levelno, self.default_formatter)
         return formatter.format(record)
-    
+
 class AtomicBasis(object):
     def __init__(self, xyz, expo, coef, name=""):
         self.name = name
@@ -231,7 +234,7 @@ class BasisSet(object):
     program-specific options """
     def __init__(self):
         self.format = None
-        
+
 class PeriodicTable(object):
     """ Minimal implementation of a periodic table of elements. """
     PTE = ["H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg",
@@ -248,27 +251,27 @@ class PeriodicTable(object):
 
     def get_atomic_num(self, symbol):
         """ Convert atomic symbol to atomic number.
-        
+
         Parameters
         ----------
         symbol : string
             Atomic symbol.
-        
+
         Returns
         -------
          : int
             Atomic number.
         """
         return PeriodicTable.PTE.index(symbol) + 1
-    
+
     def get_atomic_sym(self, number):
         """ Convert atomic number to atomic symbol.
-        
+
         Parameters
         ----------
         number : int
             Atomic number.
-        
+
         Returns
         -------
          : string

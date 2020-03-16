@@ -21,14 +21,14 @@ def extract_floats(p_string):
     """ Extracts floats from convoluted string.
 
     Example: '1.23345-412.2451515'. The function will
-    return a list ['1.23345', '-412.2451515'].
-    If the function is not a float, a list object
-    of the original string will be returned.
+    return a list [1.23345, -412.2451515].
     """
     pattern = r"[-+]?\d+\.\d+"
     floats = re.findall(pattern, p_string)
-    if len(floats) == 0:
-        floats = [p_string]
+    # if len(floats) == 0:
+    #     floats = [p_string]
+    # else:
+    floats = list(map(float, floats))
     return floats
 
 def clean_line_split(line_split):
@@ -42,15 +42,15 @@ def clean_line_split(line_split):
     if len(first) == 1 and match:
         line_split[0] = line_split[0].replace(first[0], '')
         line_split.insert(1, first[0])
-    
+
     # if two matrix elements are stuck together
     multi_list = [extract_floats(elem) for elem in line_split]
     flattened  = [item for sublist in multi_list for item in sublist]
     return flattened
 
 def parse_symmetric_matrix(n, readlin, asmatrix=True):
-    """Parse a symmetric matrix printed columnwise 
-    
+    """Parse a symmetric matrix printed columnwise
+
     Parameters
     ----------
     n : int
@@ -59,7 +59,7 @@ def parse_symmetric_matrix(n, readlin, asmatrix=True):
         Readlines list object
     asmatrix : bool
         Whether to return a numpy.matrix object or not
-    
+
     Returns
     -------
     numpy.matrix
@@ -112,13 +112,13 @@ def parse_symmetric_matrix(n, readlin, asmatrix=True):
         return matrix
 
 def parse_AO_matrix(readlin, n, asmatrix=True):
-    """Parse a matrix that uses AO descriptors, e.g. MO coefficients 
-    
+    """Parse a matrix that uses AO descriptors, e.g. MO coefficients
+
     The matrix is printed columnwise (here hardcoded to max. 6 columns) and has
     AO descriptors on the left side, for instance "25 C 1   pz". The head of
     each column contains the column number (Fortran counting) and the
     eigenvalue, both of which are not parsed.
-    
+
     Parameters
     ----------
     readlin : list
@@ -127,7 +127,7 @@ def parse_AO_matrix(readlin, n, asmatrix=True):
         Line number of identifier
     asmatrix : bool
         Whether to return a numpy.matrix object or not
-    
+
     Returns
     -------
     numpy.matrix
@@ -221,14 +221,17 @@ def parse_STS_table(i, data, cols=[0,1], fmt=[int, float]):
         j += 1
     return values
 
-def parse_inline_vec(line, asarray=True):
-    """ Extracts a vector of the format
-    '[ 1.000, 2.000, 3.000]' from the current line"""
-    pattern = r"[+-]?\d+\.\d*"
-    match = re.findall(pattern, line)
-    if len(match) > 0:
-        match = list(map(float, match))
-        return np.asarray(match)
+# def parse_inline_vec(line, asarray=True):
+#     """ Extracts a vector of the format
+#     '[ 1.000, 2.000, 3.000]' from the current line"""
+#     pattern = r"[+-]?\d+\.\d*"
+#     match = re.findall(pattern, line)
+#     if len(match) > 0:
+#         match = list(map(float, match))
+#         if asarray:
+#             return np.asarray(match)
+#         else:
+#             return match
 
 def parse_libwfa_vec(hook_string, data, i):
     """ Extract vector from libwfa block
@@ -240,7 +243,7 @@ def parse_libwfa_vec(hook_string, data, i):
         if len(ls) == 0:
             break
         elif hook_string in data[i+j]:
-            vec = parse_inline_vec(data[i+j])
+            vec = extract_floats(data[i+j])
             break
         j += 1
     return vec
@@ -296,7 +299,7 @@ class General(QCMethod):
                 n += 1
         xyz_dat = [[x[0]]+list(map(float,x[1:])) for x in xyz_dat]
         return xyz_dat
-    
+
     @var_tag(V.n_occ)
     def electrons(self, i, data):
         """ Parse number of occupied alpha and beta electrons"""
@@ -363,7 +366,7 @@ class General(QCMethod):
         """ Parse name of basis set. """
         mLogger.info("basis set name", extra={"Parsed": V.basis_name})
         return data[i].split()[-1]
-       
+
 
 class SCF(QCMethod):
     """ Parse scfman related quantities """
@@ -447,7 +450,7 @@ class GENSCF(QCMethod):
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
         self.hooks = {"density_matrix" : "Density Matrix\n"}
-    
+
     @var_tag(V.dens_mat)
     def density_matrix(self, i, data):
         """ Parse density matrix
@@ -552,7 +555,7 @@ class ADC(QCMethod):
              expr = r"(\d+) [^0-9]+ ((\d+) [^0-9]+)? (\d+) [^0-9]+ ((\d+) [^0-9]+)? (-?\d+\.\d+)"
              srch = re.search
              have_regex = False
-    
+
         idx = i+3
         amplist = []# Format: [[occ_i, occ_j,..., virt_a, virt_b,..., ampl], ...]
         while "--------" not in data[idx]:
@@ -571,7 +574,7 @@ class ADC(QCMethod):
     @var_tag(V.total_dipole)
     def total_dipole(self, i, data):
         """ Parse total dipole moment [Debye] for HF, MP2 and ADC states
-        
+
         Returns
         -------
         float
@@ -582,8 +585,8 @@ class ADC(QCMethod):
 
     @var_tag(V.dipole_moment)
     def dipole_moment(self, i, data):
-        """ Parse dipole moment components in [a.u.] 
-        
+        """ Parse dipole moment components in [a.u.]
+
         Returns
         -------
         numpy.ndarray
@@ -644,7 +647,7 @@ class ADC(QCMethod):
                 break
             elif "Hole size [Ang]:" in data[i+j] and \
             "Cartesian components [Ang]:" in data[i+j+1]:
-                vec = parse_inline_vec(data[i+j+1])
+                vec = extract_floats(data[i+j+1])
                 break
             j += 1
         return vec
@@ -662,7 +665,7 @@ class ADC(QCMethod):
                 break
             elif "Electron size [Ang]:" in data[i+j] and \
             "Cartesian components [Ang]:" in data[i+j+1]:
-                vec = parse_inline_vec(data[i+j+1])
+                vec = extract_floats(data[i+j+1])
                 break
             j += 1
         return vec
@@ -737,7 +740,7 @@ class ADC(QCMethod):
                 break
             elif "Hole size [Ang]:" in data[i+j] and \
             "Cartesian components [Ang]:" in data[i+j+1]:
-                vec = parse_inline_vec(data[i+j+1])
+                vec = extract_floats(data[i+j+1])
                 break
             j += 1
         return vec
@@ -755,7 +758,7 @@ class ADC(QCMethod):
                 break
             elif "Electron size [Ang]:" in data[i+j] and \
             "Cartesian components [Ang]:" in data[i+j+1]:
-                vec = parse_inline_vec(data[i+j+1])
+                vec = extract_floats(data[i+j+1])
                 break
             j += 1
         return vec
@@ -774,7 +777,7 @@ class ADC(QCMethod):
                 break
             elif "RMS electron-hole separation" in data[i+j] and \
             "Cartesian components [Ang]:" in data[i+j+1]:
-                vec = parse_inline_vec(data[i+j+1])
+                vec = extract_floats(data[i+j+1])
                 break
             j += 1
         return vec
@@ -887,7 +890,7 @@ class FDE_ADC(QCMethod):
     @var_tag(V.fde_expansion)
     def expansion(self, i, data):
         """ Parses FDE-Expansion type [ME, SE, RADM]
-        
+
         Returns
         -------
         string
@@ -901,9 +904,9 @@ class FDE_ADC(QCMethod):
     def method_Aref(self, i, data):
         """ Parses which method is used to generate rhoAref (the density used
         to construct the initial embedding potential)
-        
+
         So far the choices are "HF", "DFT / Func_Name" or "imported"
-        
+
         Returns
         -------
         string
@@ -919,10 +922,10 @@ class FDE_ADC(QCMethod):
 
     @var_tag(V.fde_method_rhoB)
     def method_B(self, i, data):
-        """ Parses method type for rhoB. 
-        
+        """ Parses method type for rhoB.
+
         So far the choices are "HF", "DFT / Func_Name" or "imported"
-        
+
         Returns
         -------
         string
@@ -938,10 +941,10 @@ class FDE_ADC(QCMethod):
 
     @var_tag(V.fde_method_rhoB)
     def method_B_legacy(self, i, data):
-        """ Parses method type for rhoB. 
-        
+        """ Parses method type for rhoB.
+
         So far the choices are "HF", "DFT / Func_Name" or "imported"
-        
+
         Returns
         -------
         string
@@ -954,7 +957,7 @@ class FDE_ADC(QCMethod):
     def tfunc(self, i, data):
         """ Determine what kinetic energy functional is used to construct
         the embedding potential.
-        
+
         Returns
         -------
         string
@@ -968,7 +971,7 @@ class FDE_ADC(QCMethod):
     def xcfunc(self, i, data):
         """ Determine what exchange-correlation functional is used to construct
         the embedding potential.
-        
+
         Returns
         -------
         string
@@ -982,7 +985,7 @@ class FDE_ADC(QCMethod):
     def xfunc(self, i, data):
         """ Determine what exchange functional is used to construct
         the embedding potential.
-        
+
         Returns
         -------
         string
@@ -996,7 +999,7 @@ class FDE_ADC(QCMethod):
     def cfunc(self, i, data):
         """ Determine what correlation functional is used to construct
         the embedding potential.
-        
+
         Returns
         -------
         string
@@ -1009,7 +1012,7 @@ class FDE_ADC(QCMethod):
     @var_tag(V.fde_non_elstat_ref)
     def nonel_ref(self, i, data):
         """Parses non additive properties of the reference density
-        
+
         Returns
         -------
         list
@@ -1027,7 +1030,7 @@ class FDE_ADC(QCMethod):
     @var_tag(V.fde_sysA)
     def subsysA(self, i, data):
         """Parses total energy of subsystem A WITHOUT embedding potential.
-        
+
         Returns
         -------
         float
@@ -1040,7 +1043,7 @@ class FDE_ADC(QCMethod):
     @var_tag(V.fde_sysB)
     def subsysB(self, i, data):
         """Parses total energy of subsystem B if calculated within fdeman.
-        
+
         Returns
         -------
         float
@@ -1053,7 +1056,7 @@ class FDE_ADC(QCMethod):
     @var_tag(V.fde_Exc_nad)
     def E_xc_nad(self, i, data):
         """Parses values of the non-additive exchange-correlation bi-functional
-        
+
         Returns
         -------
         float
@@ -1065,7 +1068,7 @@ class FDE_ADC(QCMethod):
     @var_tag(V.fde_Ts_nad)
     def Ts_nad(self, i, data):
         """Parses values of the non-additive kinetic bi-functional
-        
+
         Returns
         -------
         float
@@ -1076,13 +1079,13 @@ class FDE_ADC(QCMethod):
 
     @var_tag(V.fde_int_xc_nad_ref)
     def V_xc_nad_ref(self, i, data):
-        """Parses integral of some rhoA with the non-additive 
+        """Parses integral of some rhoA with the non-additive
         exchange-correlation potential obtained with rhoA_ref:
-        
+
         :math:`\\int \\rho_{A}\\cdot v_{xc}^{nad}[\\rho_{A}^{ref},
         \\rho_{B}](\\mathbf{r})`
-        
-        
+
+
         Returns
         -------
         float
@@ -1094,13 +1097,13 @@ class FDE_ADC(QCMethod):
 
     @var_tag(V.fde_int_xc_nad)
     def V_xc_nad(self, i, data):
-        """Parses integral of some rhoA with the non-additive 
+        """Parses integral of some rhoA with the non-additive
         exchange-correlation potential obtained with rhoA_emb (HF):
-        
+
         :math:`\\int \\rho_{A}\\cdot v_{xc}^{nad}[\\rho_{A}^{emb,HF},
         \\rho_{B}](\\mathbf{r})`
-        
-        
+
+
         Returns
         -------
         float
@@ -1114,11 +1117,11 @@ class FDE_ADC(QCMethod):
     def V_t_nad_ref(self, i, data):
         """Parses integral of some rhoA with the non-additive kinetic
         potential obtained with rhoA_ref:
-        
+
         :math:`\\int \\rho_{A}\\cdot v_{xc}^{nad}[\\rho_{A}^{ref},
         \\rho_{B}](\\mathbf{r})`
-        
-        
+
+
         Returns
         -------
         float
@@ -1132,11 +1135,11 @@ class FDE_ADC(QCMethod):
     def V_t_nad(self, i, data):
         """Parses integral of some rhoA with the non-additive kinetic
         potential obtained with rhoA_emb (HF):
-        
+
         :math:`\\int \\rho_{A}\\cdot v_{xc}^{nad}[\\rho_{A}^{emb,HF},
         \\rho_{B}](\\mathbf{r})`
-        
-        
+
+
         Returns
         -------
         float
@@ -1149,11 +1152,11 @@ class FDE_ADC(QCMethod):
     @var_tag(V.fde_J)
     def J_int(self, i, data):
         """Parses Coulomb repulsion of rhoA and rhoB.
-        
+
          :math:`\\int\\int\\frac{\\rho_{A}(\\mathbf{r})\\rho_{B}(\\mathbf{r}')}
          {|\\mathbf{r}-\\mathbf{r}'|}\\mathrm{d}\\mathbf{r}'\\mathrm{d}
          \\mathbf{r}`
-        
+
         Returns
         -------
         float
@@ -1165,10 +1168,10 @@ class FDE_ADC(QCMethod):
     @var_tag(V.fde_AnucB)
     def AnucB(self, i, data):
         """Parses Coulomb attraction of rhoA and NucB.
-        
+
         :math:`\\int \\rho_{A}\\cdot v_B\\mathrm{d}
         \\mathbf{r}`
-        
+
         """
         mLogger.info("Coulomb attraction of rhoA-nucB",
                      extra={"Parsed":V.fde_AnucB})
@@ -1177,10 +1180,10 @@ class FDE_ADC(QCMethod):
     @var_tag(V.fde_BnucA)
     def BnucA(self, i, data):
         """Parses Coulomb attraction of rhoB and NucA.
-        
+
         :math:`\\int \\rho_{B}\\cdot v_A\\mathrm{d}
         \\mathbf{r}`
-        
+
         """
         mLogger.info("Coulomb attraction of rhoB-nucA",
                      extra={"Parsed":V.fde_BnucA})
@@ -1189,10 +1192,10 @@ class FDE_ADC(QCMethod):
     @var_tag(V.fde_VNN)
     def V_NA_NB(self, i, data):
         """Parses Coulomb repulsion of nuclei NucA and NucB.
-        
+
         :math:`\\sum_{A}\\sum_{B} \\frac{Z_{A}Z_{B}}{|\\mathbf{R}_{A} -
         \\mathbf{R}_{B}|}`
-    
+
         """
         mLogger.info("Coulomb repulsion of nucA-nucB",
                      extra={"Parsed":V.fde_VNN})
@@ -1339,7 +1342,7 @@ class CDFTCI(QCMethod):
         """ Parse CDFT-CI Hamiltonian matrix in orthogonalized basis."""
         mLogger.info("CDFT-CI H in orthogonal basis", extra={"Parsed": V.orthogonal_H})
         return parse_symmetric_matrix(i, data)
-    
+
     @var_tag(V.nonorthogonal_dip)
     def nonorthogonal_dip(self, i, data):
         """ Parse x,y, or z component of dipole tensor in nonorthogonal basis"""
@@ -1376,7 +1379,7 @@ class TDDFT(QCMethod):
                 "trans_dip": r"GMH Couplings Between( Ground and)? Singlet Excited States",
                 "coupling": r"GMH Couplings Between( Ground and)? Singlet Excited States",
                 "oscillator_strength": r"Transition Moments Between( Ground and)? Singlet Excited States"}
-    
+
     # TODO: not the same format as in other calculations... this gives
     # blocks of dipole moments instead of individual ones.
     @var_tag(V.sts_dip_mom)
@@ -1677,11 +1680,81 @@ class RIMP2(QCMethod):
     @var_tag(V.n_frz_occ)
     def n_frz_occ(self, i, data):
         """ Number of frozen occupied orbitals """
-        mLogger.info("Number of frozen occupied MOs",
+        mLogger.info("number of frozen occupied MOs",
                 extra={"Parsed" : V.n_frz_occ})
         return int(data[i].split()[-1])
 
+class GeometryOpt(QCMethod):
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.hooks = {
+            "final_energy" : r"Final energy is\s+([-]?\d+\.\d+)",
+            "final_xyz" : "OPTIMIZATION CONVERGED",
+        }
 
+    @var_tag(V.final_energy)
+    def final_energy(self, i, data):
+        """ Parse total energy of converged molecular structure [Hartree]. """
+        mLogger.info("final energy (GeomOpt) [Hartree]",
+                extra={"Parsed" : V.final_energy})
+        return float(data[i].split()[-1])
 
+    @var_tag(V.final_xyz)
+    def final_xyz(self, i, data):
+        """ Parse converged molecular structure in XYZ format. """
+        mLogger.info("final XYZ (GeomOpt)", extra={"Parsed" : V.final_xyz})
+        n = 0
+        xyz = []
+        while True:
+            line = data[i+5+n]
+            if "Z-matrix Print:" in line:
+                break
+            if len(line.split()) > 0:
+                xyz.append(line.split()[1:])
+            n +=1
+        print("n = ", n)
+        print(xyz)
+        # for k in range(n):
+        #     xyz.append(data[i+5+k].split()[1:])
+        xyz = [[x[0]]+list(map(float,x[1:])) for x in xyz]
+        return xyz
 
+class Frequencies(QCMethod):
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.hooks = {
+            'frequencies' : 'VIBRATIONAL ANALYSIS',
+            'ir_intensity': 'VIBRATIONAL ANALYSIS',
+        }
 
+    @var_tag(V.vib_freq)
+    def frequencies(self, i, data):
+        """ Parse vibrational frequencies in [cm^-1] """
+        mLogger.info("vibrational frequencies [cm^-1]",
+            extra={"Parsed" : V.vib_freq})
+        n = 9
+        freq = []
+        while True:
+            line = data[i+n]
+            if 'STANDARD THERMODYNAMIC QUANTITIES AT' in line:
+                break
+            if "Frequency:" in line:
+                freq += extract_floats(line)
+            n += 1
+        return freq
+
+    @var_tag(V.vib_intensity)
+    def ir_intensity(self, i, data):
+        """ Parse IR intensities in [KM/mol] """
+        mLogger.info("vibrational frequencies.",
+            extra={"Parsed" : V.vib_intensity})
+        n = 9
+        intensities = []
+        while True:
+            line = data[i+n]
+            if 'STANDARD THERMODYNAMIC QUANTITIES AT' in line:
+                break
+            if "IR Intens:" in line:
+                intensities += extract_floats(line)
+            n += 1
+        return intensities
