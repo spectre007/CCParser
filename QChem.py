@@ -263,6 +263,46 @@ def parse_libwfa_float(hook_string, data, i):
         j += 1
     return dist
 
+class Input(QCMethod):
+    """Parse input section. """
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        # hooks as {function_name : hook_string}
+        self.hooks = {'molecule' : '$molecule',
+        }
+
+    @var_tag(V.molecule)
+    def molecule(self, i, data):
+        """ Get molecular/fragment configuration """
+        mLogger.info("input molecule(s)", extra={"Parsed" : V.molecule})
+        mol, n = {}, 0
+        ifrag = 0
+        curr_mol = 'total'
+        mol = {'atoms' : [], 'xyz' : [], 'charge' : [], 'multiplicity' : []}
+        while True:
+            cwline = data[i+1+n]
+            if len(cwline.split()) == 2:#may be not strict enough
+                elconf = list(map(int, cwline.split()))
+                mol['charge'].append(elconf[0])
+                mol['multiplicity'].append(elconf[1])
+            elif "$end" in cwline:
+                break
+            elif '--' in cwline:
+                ifrag += 1
+                mol['atoms'].append([])
+                mol['xyz'].append([])
+            elif "read" in cwline:
+                mol = 'read'
+            else:
+                if ifrag == 0:
+                    mol['atoms'].append(cwline.split()[0])
+                    mol['xyz'].append(list(map(float, cwline.split()[1:])))
+                else:
+                    mol['atoms'][ifrag-1].append(cwline.split()[0])
+                    mol['xyz'][ifrag-1].append(list(map(float, cwline.split()[1:])))
+            n += 1
+        return mol
+
 class General(QCMethod):
     """Parse general information like basis set, number of atoms, etc. """
     def __init__(self):
@@ -1437,7 +1477,8 @@ class ALMO(QCMethod):
         self.hooks["disp_simple"] = r"DISPERSION\s+(-?\d+\.\d+)"
         self.hooks["pol_simple"]  = r"POLARIZATION\s+(-?\d+\.\d+)"
         self.hooks["ct_simple"]   = r"CHARGE TRANSFER\s+(-?\d+\.\d+)"
-        self.hooks["tot_simple"]   = r"TOTAL\s+(-?\d+\.\d+)\s+\(.+\)"
+        self.hooks["tot_simple"]  = r"TOTAL\s+(-?\d+\.\d+)\s+\(.+\)"
+        self.hooks["frag_energy"] = "Fragment Energies (Ha):"
 
     @var_tag(V.almo_cls_elec)
     def E_cls_elec(self, i, data):
@@ -1606,6 +1647,21 @@ class ALMO(QCMethod):
         mLogger.info("ALMO-EDA total interaction energy [a.u.]",
                 extra={"Parsed" : V.almo_tot})
         return float(data[i+5].split()[2])
+
+    @var_tag(V.almo_frg_ene)
+    def frag_energy(self, i, data):
+        """ Parse total energies [Hartree] of isolated fragments """
+        mLogger.info("fragment energies (isolated) [a.u.]",
+                extra={"Parsed" : V.almo_frg_ene})
+        k = 0
+        e_frag = []
+        while True:
+            cwline = data[i+1+k]
+            if "-----" in cwline:
+                break
+            e_frag.append(cwline.split()[-1])
+            k += 1
+        return list(map(float, e_frag))
 
 class RIMP2(QCMethod):
     def __init__(self):

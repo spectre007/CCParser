@@ -158,13 +158,15 @@ class VarNames(object):
     almo_tot  = "almo_tot"
     almo_cls_elec  = "almo_cls_elec"
     almo_cls_pauli = "almo_cls_pauli"
+    almo_frg_ene   = "almo_frg_energy"
     # almo_components = "almo_comp"
     # almo_total      = "almo_tot"
     sapt0_total     = "sapt0_tot"
     sapt_components = "sapt_comp"
 
     # -- Input variables --
-    params = "input"
+    params   = "input"
+    molecule = "molecule" 
 
 
 def var_tag(var_name):
