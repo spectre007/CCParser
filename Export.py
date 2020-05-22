@@ -66,7 +66,7 @@ class Exporter(object):
         df = pd.concat([df1, amp_df], axis=1)
         # add row to MultiIndex, see https://stackoverflow.com/q/24917700
         if ground_state:
-            df.ix[(0,0),:] = np.nan
+            df.loc[(0,0),:] = np.nan
             df.sort_index(level=0, inplace=True)
         
         # EXPORT TO FILE or dataframe
