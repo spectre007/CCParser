@@ -89,15 +89,19 @@ def parse_symmetric_matrix(n, readlin, asmatrix=True):
             first_batch = False
         while True: #loop over lines in one block
             line_split = readlin[index_line+j+1].split()
-            # if needed clean the split from glued floats
-            if len(line_split) != ncol+1:
-                line_split = clean_line_split(line_split)
-            # abort if incorrect number of elements or signal
-            if len(line_split) != ncol+1 \
-            or any(stop in line_split for stop in stop_signals):
+            # abort if no elements in line split
+            if len(line_split) == 0:
                 break
             # abort if first element is not a number
             if not line_split[0].isdigit():
+                break
+            # if needed clean the split from glued floats
+            if len(line_split) == ncol and \
+                    len(line_split[0].split('-')) > 1:
+                line_split = clean_line_split(line_split)
+            # abort if incorrect number of elements or signal
+            # if len(line_split) != ncol+1 \
+            if any(stop in line_split for stop in stop_signals):
                 break
             if first_batch:
                 matrix.append([])
@@ -263,6 +267,23 @@ def parse_libwfa_float(hook_string, data, i):
         j += 1
     return dist
 
+def parse_converged_genscfman(i, data, offset=0):
+    """ Extract the total energy from converged SCF cycles."""
+    j = offset
+    patt = r"\s+\d+\s+(-?\d+\.\d+)\s+(\d+\.\d+[e]-\d+)\s+\d{5}\s(Convergence criterion met)"
+    end_string = "Timing for Total SCF:"
+    SCF_conv = 0
+    while True:
+        if end_string in data[i+j]:
+            break
+        match = re.search(patt, data[i+j])
+        if match:
+            SCF_conv = match.group(1)
+            break
+        j += 1
+    return SCF_conv
+
+###############################################################################
 class Input(QCMethod):
     """Parse input section. """
     def __init__(self):
@@ -1465,6 +1486,12 @@ class ALMO(QCMethod):
             "MP2 only EDA results (Hartree)"))
         self.hooks.update(dict.fromkeys(["E_frz", "E_pol", "E_disp", "E_ct",
             "E_tot"], "Total EDA results (Hartree)"))
+
+        self.hooks["Escf_frz"] = "Energy of the unrelaxed supersystem initial determinant"
+        # self.hooks["Eorth_decomp"] = "Orthogonal Decomposition of the Initial Supersystem Wavefunction"
+        self.hooks["Escf_pol"]  = "for the determination of the polarized wavefunction"
+        self.hooks["Escf_full"] = "for the determination of the CT-Allowed wavefunction"
+
         self.hooks["E_cls_elec"]  = "E_cls_elec  (CLS ELEC)  (kJ/mol)"
         self.hooks["E_cls_pauli"] = "E_cls_pauli (CLS PAULI) (kJ/mol)"
         self.hooks["SCF_frz"] = "E_frz (kJ/mol) ="
@@ -1479,6 +1506,27 @@ class ALMO(QCMethod):
         self.hooks["ct_simple"]   = r"CHARGE TRANSFER\s+(-?\d+\.\d+)"
         self.hooks["tot_simple"]  = r"TOTAL\s+(-?\d+\.\d+)\s+\(.+\)"
         self.hooks["frag_energy"] = "Fragment Energies (Ha):"
+
+    @var_tag(V.almo_frz_tot)
+    def Escf_frz(self, i, data):
+        """ Parse total SCF Frozen energy"""
+        mLogger.info("total frozen energy E_frz [a.u.]",
+                extra={"Parsed" : V.almo_frz_tot})
+        return float(data[i].split()[-1])
+
+    @var_tag(V.almo_pol_tot)
+    def Escf_pol(self, i, data):
+        """ Parse total SCF polarization energy"""
+        mLogger.info("total polarization energy E_pol [a.u.]",
+                extra={"Parsed" : V.almo_pol_tot})
+        return parse_converged_genscfman(i, data, offset=5)
+
+    @var_tag(V.almo_ful_tot)
+    def Escf_full(self, i, data):
+        """ Parse total (CT-allowed) SCF energy"""
+        mLogger.info("total supersystem energy E_full [a.u.]",
+                extra={"Parsed" : V.almo_ful_tot})
+        return parse_converged_genscfman(i, data, offset=5)
 
     @var_tag(V.almo_cls_elec)
     def E_cls_elec(self, i, data):

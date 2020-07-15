@@ -151,6 +151,9 @@ class VarNames(object):
     trans_eh_corr     = "trans_eh_corr"
 
     # -- Energy decomposition analysis --
+    almo_frz_tot = "almo_frz_tot"
+    almo_pol_tot = "almo_pol_tot"
+    almo_ful_tot = "almo_full_tot"
     almo_frz  = "almo_frz"
     almo_pol  = "almo_pol"
     almo_ct   = "almo_ct"
