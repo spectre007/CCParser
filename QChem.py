@@ -1863,7 +1863,7 @@ class CoupledCluster(QCMethod):
     def __init__(self):
         super().__init__()# necessary for every derived class of QCMethod
         self.hooks = {
-            "libpt_mp2": "MP2 energy",
+            "libpt_mp2": r"MP2 energy\s+=\s+([-]?\d+\.\d+)",
             "libpt_ecorr": r"(CC[SDT\(\)]+) correlation energy\s+=\s+([-]?\d+\.\d+)",
             "libpt_etot": r"(CC[SDT\(\)]+) total energy\s+=\s+([-]?\d+\.\d+)",
         }
