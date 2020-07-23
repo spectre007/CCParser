@@ -15,14 +15,16 @@ class VarNames(object):
     if it was parsed several times as ccp.Parser.results.my_new_var.get_last()"""
     # -- Energies --
     scf_energy      = "scf_energy"
-    mp_energy       = "mp_energy"
+    mp_energy       = "mp_energy"        # total MP energy
     mp_aaaa         = "mp_aaaa"          # mp2 same spin (alpha) component
     mp_bbbb         = "mp_bbbb"          # mp2 same spin (beta) component
     mp_abab         = "mp_abab"          # mp2 opposite spin component
     mp_nonBrill     = "mp_nonBrill"      # mp2 non-brillouin singles
     mp_ss           = "mp_ss"            # mp2 total same spin corr
     mp_os           = "mp_os"            # mp2 total opposite spin corr
-    mp_correction   = "mp_correction"
+    mp_correction   = "mp_correction"    # MP correlation energy
+    cc_energy       = "cc_energy"        # total coupled cluster energy
+    cc_correlation  = "cc_correlation"   # CC correlation energy
     exc_energy_abs  = "exc_energy_abs"
     exc_energy_rel  = "exc_energy_rel"
     mo_energies     = "mo_energies"
@@ -169,7 +171,7 @@ class VarNames(object):
 
     # -- Input variables --
     params   = "input"
-    molecule = "molecule" 
+    molecule = "molecule"
 
 
 def var_tag(var_name):

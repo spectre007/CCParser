@@ -1858,3 +1858,33 @@ class Frequencies(QCMethod):
                 intensities += extract_floats(line)
             n += 1
         return intensities
+
+class CoupledCluster(QCMethod):
+    def __init__(self):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.hooks = {
+            "libpt_mp2": "MP2 energy",
+            "libpt_ecorr": r"(CC[SDT\(\)]+) correlation energy\s+=\s+([-]?\d+\.\d+)",
+            "libpt_etot": r"(CC[SDT\(\)]+) total energy\s+=\s+([-]?\d+\.\d+)",
+        }
+
+    @var_tag(V.mp_energy)
+    def libpt_mp2(self, i, data):
+        """ Parse MP2 energy [Hartree] from libpt module"""
+        mLogger.info("total MP2 energy [a.u.]",
+                extra={"Parsed" : V.mp_energy})
+        return float(data[i].split()[-1])
+
+    @var_tag(V.cc_correlation)
+    def libpt_ecorr(self, i, data):
+        """ Parse Coupled Cluster correlation energy [Hartree] in libpt module"""
+        mLogger.info("Coupled Cluster correlation energy [a.u.]",
+                extra={"Parsed" : V.cc_correlation})
+        return float(data[i].split()[-1])
+
+    @var_tag(V.cc_energy)
+    def libpt_etot(self, i, data):
+        """ Parse Coupled Cluster total energy [Hartree] in libpt module"""
+        mLogger.info("Coupled Cluster total energy [a.u.]",
+                extra={"Parsed" : V.cc_energy})
+        return float(data[i].split()[-1])
