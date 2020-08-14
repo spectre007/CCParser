@@ -15,7 +15,7 @@ class Parser(object):
 
     def __init__(self, output, *, software=None, to_console=True,
                  to_file=False, log_file="CCParser.log", to_json=False,
-                 json_file="CCParser.json"):#cf. PEP-3102
+                 json_file="CCParser.json", overwrite_file=True, overwrite_vals=True):#cf. PEP-3102
         """ Parser constructor.
 
         Parameters
@@ -72,8 +72,26 @@ class Parser(object):
             setattr(self.results, V.has_finished, container)
             self.logger.warning("Output indicates abnormal exit. Added "+
                                 "[results.has_finished] = False")
-        if to_json:
-            self.dump_json(fname=json_file)
+        # if simple fname the first arg="", so json_filepath=json_file, but if output is "a/b/c/output.out" we obtain "a/b/c/file.json"
+        json_filepath = os.path.join(os.path.split(output)[0],json_file)   
+        if to_json and overwrite_file:
+            self.dump_json(fname=json_filepath)
+        elif to_json and not overwrite_file:
+            if os.path.isfile(json_filepath):
+                with open(json_filepath,"r") as f:
+                    old = json.load(f)
+            else:
+                old = {}
+            # slightly ugly, but turns objects into simple dictionary. Equivalent to dumping and reloading
+            new = json.loads(json.dumps(self.results, cls=StructEncoder))  
+            if overwrite_vals:
+                old.update(new)
+            else:
+                for k in new.keys():
+                    if k not in old.keys():
+                        old[k] = new[k]
+            with open(json_filepath,"w") as f:
+                json.dump(old, f)
         self.logger.warning("CCParser has finished.")
         self.loggerCleanUp()
 
