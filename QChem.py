@@ -1494,6 +1494,7 @@ class ALMO(QCMethod):
 
         self.hooks["E_cls_elec"]  = "E_cls_elec  (CLS ELEC)  (kJ/mol)"
         self.hooks["E_cls_pauli"] = "E_cls_pauli (CLS PAULI) (kJ/mol)"
+        self.hooks["SCF_disp"] = r"E_disp\s+\(DISP\)\s+\(kJ/mol\) = ([-]?\d+\.\d+)"
         self.hooks["SCF_frz"] = "E_frz (kJ/mol) ="
         self.hooks["SCF_pol"] = "E_pol (kJ/mol) ="
         self.hooks["SCF_ct"]  = r"E_vct \(kJ/mol\) = ([-]?\d+\.\d+) \(CP-corrected\)"
@@ -1540,6 +1541,13 @@ class ALMO(QCMethod):
         """ Parse exchange component of frozen energy (SCF)"""
         mLogger.info("exchange component of E_frz [kJ/mol]",
                 extra={"Parsed" : V.almo_cls_pauli})
+        return float(data[i].split()[-1])
+
+    @var_tag(V.almo_disp)
+    def SCF_disp(self, i, data):
+        """ Parse dispersion energy from Decomposition of frozen interaction energy [kJ/mol] """
+        mLogger.info("ALMO-SCF dispersion energy [kJ/mol]",
+                extra={"Parsed" : V.almo_disp})
         return float(data[i].split()[-1])
 
     @var_tag(V.almo_frz)
