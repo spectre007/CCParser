@@ -1494,6 +1494,7 @@ class ALMO(QCMethod):
 
         self.hooks["E_cls_elec"]  = "E_cls_elec  (CLS ELEC)  (kJ/mol)"
         self.hooks["E_cls_pauli"] = "E_cls_pauli (CLS PAULI) (kJ/mol)"
+        self.hooks["E_mod_pauli"] = r"E_mod_pauli\s+\(MOD PAULI\)\s+\(kJ/mol\)\s+=\s+([-]?\d+\.\d+)"
         self.hooks["SCF_disp"] = r"E_disp\s+\(DISP\)\s+\(kJ/mol\) = ([-]?\d+\.\d+)"
         self.hooks["SCF_frz"] = "E_frz (kJ/mol) ="
         self.hooks["SCF_pol"] = "E_pol (kJ/mol) ="
@@ -1532,16 +1533,24 @@ class ALMO(QCMethod):
     @var_tag(V.almo_cls_elec)
     def E_cls_elec(self, i, data):
         """ Parse classical electrostatics component of frozen energy (SCF)"""
-        mLogger.info("classical electrostatic component of E_frz [kJ/mol]",
+        mLogger.info("classical FRZ decomposition: Electrostatics [kJ/mol]",
                 extra={"Parsed" : V.almo_cls_elec})
         return float(data[i].split()[-1])
 
     @var_tag(V.almo_cls_pauli)
     def E_cls_pauli(self, i, data):
-        """ Parse exchange component of frozen energy (SCF)"""
-        mLogger.info("exchange component of E_frz [kJ/mol]",
+        """ Parse exchange repulsion component of frozen energy (SCF)"""
+        mLogger.info("FRZ decomposition: Pauli repulsion [kJ/mol]",
                 extra={"Parsed" : V.almo_cls_pauli})
         return float(data[i].split()[-1])
+
+    @var_tag(V.almo_mod_pauli)
+    def E_mod_pauli(self, i, data):
+        """ Parse modified exchange repulsion component of frozen energy (SCF)"""
+        mLogger.info("classical FRZ decomposition: Pauli repulsion [kJ/mol]",
+                extra={"Parsed" : V.almo_mod_pauli})
+        match = re.search(self.hooks["E_mod_pauli"], data[i])
+        return float(match.groups()[0])
 
     @var_tag(V.almo_disp)
     def SCF_disp(self, i, data):
