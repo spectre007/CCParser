@@ -72,8 +72,12 @@ class Parser(object):
             setattr(self.results, V.has_finished, container)
             self.logger.warning("Output indicates abnormal exit. Added "+
                                 "[results.has_finished] = False")
-        # if simple fname the first arg="", so json_filepath=json_file, but if output is "a/b/c/output.out" we obtain "a/b/c/file.json"
-        json_filepath = os.path.join(os.path.split(output)[0],json_file)   
+        """
+        if json_file is path, json_filepath = json_file
+        if output is filename, json_filepath = json_file
+        if output is path (path/output.out), json_path is filename, saves in folder (path/jsfile.json)
+        """
+        json_filepath = json_file if os.path.split(json_file)[0] else os.path.join(os.path.split(output)[0],json_file)   
         if to_json and overwrite_file:
             self.dump_json(fname=json_filepath)
         elif to_json and not overwrite_file:
