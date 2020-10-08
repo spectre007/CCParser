@@ -10,12 +10,13 @@ from .ParserData import StructEncoder
 from .QCBase import GenFormatter, VarNames as V
 
 class Parser(object):
-    
+
     FIND_MAX_LINES = 100
 
     def __init__(self, output, *, software=None, to_console=True,
                  to_file=False, log_file="CCParser.log", to_json=False,
-                 json_file="CCParser.json", overwrite_file=True, overwrite_vals=True):#cf. PEP-3102
+                 json_file="CCParser.json", overwrite_file=True,
+                 overwrite_vals=True, use_numpy=True):#cf. PEP-3102
         """ Parser constructor.
 
         Parameters
@@ -37,9 +38,13 @@ class Parser(object):
         """
         self.f_output = output
         self.logger = logging.getLogger("CCParser")
-        self.to_console = to_console
-        self.to_file = to_file
-        self.logname = log_file
+        self.config = dict(to_console=to_console, to_file=to_file,
+                           log_file=log_file, to_json=to_json,
+                           json_file=json_file, overwrite_file=overwrite_file,
+                           overwrite_vals=overwrite_vals, use_numpy=use_numpy)
+        #self.to_console = to_console
+        #self.to_file = to_file
+        #self.logname = log_file
         self.setupLogger()
         self.logger.warning("CCParser starts...")
         # determine software
@@ -77,19 +82,19 @@ class Parser(object):
         if output is filename, json_filepath = json_file
         if output is path (path/output.out), json_path is filename, saves in folder (path/jsfile.json)
         """
-        json_filepath = json_file if os.path.split(json_file)[0] else os.path.join(os.path.split(output)[0],json_file)   
-        if to_json and overwrite_file:
+        json_folder = os.path.split(self.config['json_file'])[0]
+        out_folder = os.path.split(output)[0]
+        json_filepath = self.config['json_file'] if json_folder else os.path.join(out_folder, self.config['json_file'])   
+        if self.config['to_json'] and self.config['overwrite_file']:
             self.dump_json(fname=json_filepath)
-        elif to_json and not overwrite_file:
+        elif self.config['to_json'] and not self.config['overwrite_file']:
             if os.path.isfile(json_filepath):
                 with open(json_filepath,"r") as f:
                     old = json.load(f)
             else:
                 old = {}
-            # slightly ugly, but turns objects into simple dictionary. Equivalent to dumping and reloading
-#            new = json.loads(json.dumps(self.results, cls=StructEncoder))  
             new = StructEncoder().default(self.results)
-            if overwrite_vals:
+            if self.config['overwrite_vals']:
                 old.update(new)
             else:
                 for k in new.keys():
@@ -175,18 +180,18 @@ class Parser(object):
              logging.WARNING: "==[%(asctime)s]== %(message)s",
              logging.ERROR: "%(message)s"})
         # Set up Handlers
-        if self.to_file:
-            fh = logging.FileHandler(self.logname)
+        if self.config['to_file']:
+            fh = logging.FileHandler(self.config['log_file'])
             fh.setLevel(logging.INFO)
             fh.setFormatter(p_fmt)
             self.logger.addHandler(fh)
-        if self.to_console:
+        if self.config['to_console']:
             ch = logging.StreamHandler()
             ch.setLevel(logging.DEBUG)
             ch.setFormatter(p_fmt)
             self.logger.addHandler(ch)
         # No output in case both booleans are False
-        if not any([self.to_console, self.to_file]):
+        if not any([self.config['to_console'], self.config['to_file']]):
             self.logger.setLevel(logging.CRITICAL)
 
     def loggerCleanUp(self):
