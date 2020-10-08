@@ -15,7 +15,7 @@ class Parser(object):
 
     def __init__(self, output, *, software=None, to_console=True,
                  to_file=False, log_file="CCParser.log", to_json=False,
-                 json_file="CCParser.json", overwrite_file=True,
+                 json_file="CCParser.json", overwrite_json=True,
                  overwrite_vals=True, use_numpy=True):#cf. PEP-3102
         """ Parser constructor.
 
@@ -35,12 +35,18 @@ class Parser(object):
             Whether to dump CCParser.results to JSON file.
         json_file : string
             Name of JSON output file.
+        overwrite_json : bool
+            Whether to overwrite the JSON file.
+        overwrite_vals : bool
+            Whether to overwrite values of keys that are present in JSON file.
+        use_numpy : bool
+            Whether to use numpy datatypes for matrices when possible (instead of list of lists).
         """
         self.f_output = output
         self.logger = logging.getLogger("CCParser")
         self.config = dict(to_console=to_console, to_file=to_file,
                            log_file=log_file, to_json=to_json,
-                           json_file=json_file, overwrite_file=overwrite_file,
+                           json_file=json_file, overwrite_json=overwrite_json,
                            overwrite_vals=overwrite_vals, use_numpy=use_numpy)
         self.setupLogger()
         self.logger.warning("CCParser starts...")
@@ -82,9 +88,9 @@ class Parser(object):
         json_folder = os.path.split(self.config['json_file'])[0]
         out_folder = os.path.split(output)[0]
         json_filepath = self.config['json_file'] if json_folder else os.path.join(out_folder, self.config['json_file'])
-        if self.config['to_json'] and self.config['overwrite_file']:
+        if self.config['to_json'] and self.config['overwrite_json']:
             self.dump_json(fname=json_filepath)
-        elif self.config['to_json'] and not self.config['overwrite_file']:
+        elif self.config['to_json'] and not self.config['overwrite_json']:
             if os.path.isfile(json_filepath):
                 with open(json_filepath,"r") as f:
                     old = json.load(f)
