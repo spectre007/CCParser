@@ -48,7 +48,7 @@ def clean_line_split(line_split):
     flattened  = [item for sublist in multi_list for item in sublist]
     return flattened
 
-def parse_symmetric_matrix(n, readlin, asmatrix=True):
+def parse_symmetric_matrix(n, readlin, use_numpy=True):
     """Parse a symmetric matrix printed columnwise
 
     Parameters
@@ -57,15 +57,15 @@ def parse_symmetric_matrix(n, readlin, asmatrix=True):
         Line number of identifier
     readlin : list
         Readlines list object
-    asmatrix : bool
+    use_numpy : bool
         Whether to return a numpy.matrix object or not
 
     Returns
     -------
     numpy.matrix
-        Parsed AO matrix as numpy.matrix object if asmatrix=True
+        Parsed AO matrix as numpy.matrix object if use_numpy=True
     list
-        Parsed AO matrix as list of lists if asmatrix=False
+        Parsed AO matrix as list of lists if use_numpy=False
     """
     matrix = []
     cols = 0
@@ -110,12 +110,12 @@ def parse_symmetric_matrix(n, readlin, asmatrix=True):
             j += 1
         index_line += j+1#update index line
         cols += ncol#update total number of columns processed
-    if asmatrix: # return np.matrix object
-        return np.asmatrix(matrix)
+    if use_numpy: # return np.ndarray object
+        return np.asarray(matrix)
     else: # return list of lists
         return matrix
 
-def parse_AO_matrix(readlin, n, asmatrix=True):
+def parse_AO_matrix(readlin, n, use_numpy=True):
     """Parse a matrix that uses AO descriptors, e.g. MO coefficients
 
     The matrix is printed columnwise (here hardcoded to max. 6 columns) and has
@@ -129,15 +129,15 @@ def parse_AO_matrix(readlin, n, asmatrix=True):
         Readlines list object
     n : int
         Line number of identifier
-    asmatrix : bool
+    use_numpy : bool
         Whether to return a numpy.matrix object or not
 
     Returns
     -------
     numpy.matrix
-        Parsed AO matrix as numpy.matrix object if asmatrix=True
+        Parsed AO matrix as numpy.matrix object if use_numpy=True
     list
-        Parsed AO matrix as list of lists if asmatrix=False
+        Parsed AO matrix as list of lists if use_numpy=False
     """
     index_line = n+1
     cols = 0
@@ -164,8 +164,8 @@ def parse_AO_matrix(readlin, n, asmatrix=True):
                 break
         index_line += nbas+2
         cols += ncol
-    if asmatrix:
-        return np.asmatrix(matrix)
+    if use_numpy:
+        return np.asarray(matrix)
     else:
         return matrix
 
@@ -286,11 +286,13 @@ def parse_converged_genscfman(i, data, offset=0):
 ###############################################################################
 class Input(QCMethod):
     """Parse input section. """
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
         # hooks as {function_name : hook_string}
+        self.cfg = config
         self.hooks = {'molecule' : '$molecule',
         }
+
 
     @var_tag(V.molecule)
     def molecule(self, i, data):
@@ -326,9 +328,10 @@ class Input(QCMethod):
 
 class General(QCMethod):
     """Parse general information like basis set, number of atoms, etc. """
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
         # hooks as {function_name : hook_string}
+        self.cfg = config
         self.hooks = {'version' : r'Q-Chem\s*(\d+\.\d+), Q-Chem, Inc.,',
                 "xyz_coordinates" : "Standard Nuclear Orientation (Angstroms)",
                 "electrons" : r"There are \s+(?P<alpha>\d+) alpha and \s+(?P<beta>\d+) beta electrons",
@@ -431,9 +434,10 @@ class General(QCMethod):
 
 class SCF(QCMethod):
     """ Parse scfman related quantities """
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
         # hooks as {function_name : hook_string}
+        self.cfg = config
         self.hooks = {"scf_energy" : "SCF   energy in the final basis set",
                       # "mo_energies": "Orbital Energies (a.u.)",
                       "mo_energies": r"\s(Alpha|Beta) MOs(, Restricted)?",
@@ -475,41 +479,42 @@ class SCF(QCMethod):
     def overlap_matrix(self, i, data):
         """ Parse overlap matrix S """
         mLogger.info("overlap matrix", extra={"Parsed":V.overlap_matrix})
-        return parse_symmetric_matrix(i, data)
+        return parse_symmetric_matrix(i, data, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.orthonorm_matrix)
     def orthonorm_matrix(self, i, data):
         """ Parse orthonormalization matrix X """
         mLogger.info("orthonormalization matrix",
                      extra={"Parsed":V.orthonorm_matrix})
-        return parse_symmetric_matrix(i, data)
+        return parse_symmetric_matrix(i, data, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.alpha_dens_mat)
     def alpha_density_matrix(self, i, data):
         """ Parse alpha density matrix P_alpha """
         mLogger.info("SCF alpha density matrix",
                      extra={"Parsed":V.alpha_dens_mat})
-        return parse_symmetric_matrix(i, data)
+        return parse_symmetric_matrix(i, data, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.mo_coefficients)
     def mo_coefficients_r(self, i, data):
         """ Parse MO coefficients C for restricted SCF"""
-        C = parse_AO_matrix(data, i)
-        mLogger.info("{0:} molecular orbital coefficients".format(C.shape[0]),
+        C = parse_AO_matrix(data, i, use_numpy=self.cfg['use_numpy'])
+        mLogger.info("{0:} molecular orbital coefficients".format(len(C)),
                      extra={"Parsed":V.mo_coefficients})
         return C
 
     @var_tag(V.multipole_operator)
     def multipole_op(self, i, data):
         """ Parse Multipole matrix (x,x,x)."""
-        M = parse_symmetric_matrix(i, data)
+        M = parse_symmetric_matrix(i, data, use_numpy=self.cfg['use_numpy'])
         mLogger.info("Multipole matrix", extra={"Parsed": V.multipole_operator})
         return M
 
 class GENSCF(QCMethod):
     """ Parse quantitites from gen_scfman """
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
         self.hooks = {"density_matrix" : "Density Matrix\n"}
 
     @var_tag(V.dens_mat)
@@ -517,12 +522,13 @@ class GENSCF(QCMethod):
         """ Parse density matrix
         TODO: is that the total density?"""
         mLogger.info("SCF density matrix", extra={"Parsed": V.dens_mat})
-        return parse_symmetric_matrix(i, data)
+        return parse_symmetric_matrix(i, data, use_numpy=self.cfg['use_numpy'])
 
 class ADC(QCMethod):
     """ Parse adcman related quantities """
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
         self.hooks = {"scf_energy": "HF Summary",
                       "mp_energy": r"(RI-)?MP\([2-3]\) Summary",
                       "mp_correction": (r"(MP e|E)nergy contribution:\s+"
@@ -658,7 +664,7 @@ class ADC(QCMethod):
             mLogger.info("Dipole moment [a.u.]",
                          extra={"Parsed":V.dipole_moment})
             g = list(map(float,match.groups()))
-            return np.asarray(g)
+            return np.asarray(g) if self.cfg['use_numpy'] else g
 
     @var_tag(V.diff_detach_mean)
     def diff_detach_mean(self, i, data):
@@ -859,8 +865,9 @@ class ADC(QCMethod):
 
 class FDE_ADC(QCMethod):
     """ Parsing related to FDE-ADC implementation in Q-Chem """
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
         self.hooks = {"omega_ref": "FDE control parameter",
                       "omega_I": "Omega(FDE)",
                       "trust": "lambda(FDE)",
@@ -1264,8 +1271,9 @@ class FDE_ADC(QCMethod):
 
 class CIS(QCMethod):
     """ Parsing related to CI Singles implementation in Q-Chem """
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
         self.hooks = {"exc_energies": (r"Excited state\s+(?P<state>\d+):\s*"
             r"excitation energy \(eV\)\s*=\s*(?P<energy>[-+]?\d+\.\d+)"),
             "adiabatic_center": (r"ADIABATIC CENTER\d+\s*LOCATIONS:.*"
@@ -1329,7 +1337,7 @@ class CIS(QCMethod):
         if is_square(len(H)):
             n = int(np.sqrt(len(H)))
             H = H.reshape((n,n))
-        return H
+        return H if self.cfg['use_numpy'] else H.tolist()
 
     @var_tag(V.dia_hamilt)
     def diabatic_hamilt(self, i, data):
@@ -1352,7 +1360,7 @@ class CIS(QCMethod):
         if is_square(len(H)):
             n = int(np.sqrt(len(H)))
             H = H.reshape((n,n))
-        return H
+        return H if self.cfg['use_numpy'] else H.tolist()
 
     @var_tag(V.dia_center)
     def diabatic_center(self, i, data):
@@ -1376,8 +1384,9 @@ class CIS(QCMethod):
 
 class CDFTCI(QCMethod):
     """ Parsing related to CDFT-CI implementation in Q-Chem """
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
         self.hooks = {"overlap_matrix": "CDFT-CI overlap matrix",
                 "non_orthogonal_hamilt": "CDFT-CI Hamiltonian matrix in non-orthogonal basis",
                 "orthogonal_hamilt": "CDFT-CI Hamiltonian matrix in orthogonalized basis",
@@ -1390,40 +1399,40 @@ class CDFTCI(QCMethod):
     def overlap_matrix(self, i, data):
         """ Parse CDFT-CI overlap matrix. """
         mLogger.info("CDFT-CI overlap matrix", extra={"Parsed": V.wf_overlap})
-        return parse_symmetric_matrix(i, data)
+        return parse_symmetric_matrix(i, data, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.nonorthogonal_H)
     def non_orthogonal_hamilt(self, i, data):
         """ Parse CDFT-CI Hamiltonian matrix in non-orthogonal basis."""
         mLogger.info("CDFT-CI H in non-orth. basis", extra={"Parsed": V.nonorthogonal_H})
-        return parse_symmetric_matrix(i, data)
+        return parse_symmetric_matrix(i, data, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.orthogonal_H)
     def orthogonal_hamilt(self, i, data):
         """ Parse CDFT-CI Hamiltonian matrix in orthogonalized basis."""
         mLogger.info("CDFT-CI H in orthogonal basis", extra={"Parsed": V.orthogonal_H})
-        return parse_symmetric_matrix(i, data)
+        return parse_symmetric_matrix(i, data, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.nonorthogonal_dip)
     def nonorthogonal_dip(self, i, data):
         """ Parse x,y, or z component of dipole tensor in nonorthogonal basis"""
         mLogger.info("dipole matrix in non-orth. basis",
                 extra={"Parsed": V.nonorthogonal_dip})
-        return parse_symmetric_matrix(i, data)
+        return parse_symmetric_matrix(i, data, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.dia_dip)
     def diabatic_dip(self, i, data):
         """ Parse x,y, or z component of dipole tensor in diabatic basis"""
         mLogger.info("dipole matrix in diabatic basis",
                 extra={"Parsed": V.dia_dip})
-        return parse_symmetric_matrix(i, data)
+        return parse_symmetric_matrix(i, data, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.adia_dip)
     def adiabatic_dip(self, i, data):
         """ Parse x,y, or z component of dipole tensor in adiabatic basis"""
         mLogger.info("dipole matrix in adiabatic basis",
                 extra={"Parsed": V.adia_dip})
-        return parse_symmetric_matrix(i, data)
+        return parse_symmetric_matrix(i, data, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.adia_energy)
     def adiabatic_energy(self, i, data):
@@ -1434,8 +1443,9 @@ class CDFTCI(QCMethod):
 
 class TDDFT(QCMethod):
     """ Parsing related to TDDFT implementation in Q-Chem """
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
         self.hooks = {"dip_mom_ES": "Electron Dipole Moments of Singlet Excited State",
                 "trans_dip": r"GMH Couplings Between( Ground and)? Singlet Excited States",
                 "coupling": r"GMH Couplings Between( Ground and)? Singlet Excited States",
@@ -1475,8 +1485,9 @@ class TDDFT(QCMethod):
 
 class ALMO(QCMethod):
     """ Parse general ALMO output """
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
         self.hooks = {}
         # self.hooks = dict.fromkeys(["SCF_frz_simple", "SCF_pol_simple",
         #     "SCF_ct_simple", "SCF_tot_simple"],
@@ -1729,8 +1740,9 @@ class ALMO(QCMethod):
         return list(map(float, e_frag))
 
 class RIMP2(QCMethod):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
         self.hooks = {
                 "mp2_aaaa": "aaaa    correlation energy =",
                 "mp2_abab": "abab    correlation energy =",
@@ -1806,8 +1818,9 @@ class RIMP2(QCMethod):
         return int(data[i].split()[-1])
 
 class GeometryOpt(QCMethod):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
         self.hooks = {
             "final_energy" : r"Final energy is\s+([-]?\d+\.\d+)",
             "final_xyz" : "OPTIMIZATION CONVERGED",
@@ -1837,8 +1850,9 @@ class GeometryOpt(QCMethod):
         return xyz
 
 class Frequencies(QCMethod):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
         self.hooks = {
             'frequencies' : 'VIBRATIONAL ANALYSIS',
             'ir_intensity': 'VIBRATIONAL ANALYSIS',
@@ -1877,8 +1891,9 @@ class Frequencies(QCMethod):
         return intensities
 
 class CoupledCluster(QCMethod):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
         self.hooks = {
             "libpt_mp2": r"MP2 energy\s+=\s+([-]?\d+\.\d+)",
             "libpt_ecorr": r"(CC[SDT\(\)]+) correlation energy\s+=\s+([-]?\d+\.\d+)",

@@ -42,9 +42,6 @@ class Parser(object):
                            log_file=log_file, to_json=to_json,
                            json_file=json_file, overwrite_file=overwrite_file,
                            overwrite_vals=overwrite_vals, use_numpy=use_numpy)
-        #self.to_console = to_console
-        #self.to_file = to_file
-        #self.logname = log_file
         self.setupLogger()
         self.logger.warning("CCParser starts...")
         # determine software
@@ -84,7 +81,7 @@ class Parser(object):
         """
         json_folder = os.path.split(self.config['json_file'])[0]
         out_folder = os.path.split(output)[0]
-        json_filepath = self.config['json_file'] if json_folder else os.path.join(out_folder, self.config['json_file'])   
+        json_filepath = self.config['json_file'] if json_folder else os.path.join(out_folder, self.config['json_file'])
         if self.config['to_json'] and self.config['overwrite_file']:
             self.dump_json(fname=json_filepath)
         elif self.config['to_json'] and not self.config['overwrite_file']:
@@ -164,7 +161,7 @@ class Parser(object):
         self.method_names = [k[0] for k in inspect.getmembers(m,\
             inspect.isclass) if k[1].__module__ == "CCParser"+m_package]
         # this also instantiates!!
-        self.methods = [getattr(m, mname)() for mname in self.method_names]
+        self.methods = [getattr(m, mname)(self.config) for mname in self.method_names]
 
     def setupLogger(self):
         """Initiate logger for CCParser.Parser"""
