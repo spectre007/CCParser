@@ -86,7 +86,7 @@ class Parser(object):
         if output is path (path/output.out), json_path is filename, saves in folder (path/jsfile.json)
         """
         json_folder = os.path.split(self.config['json_file'])[0]
-        out_folder = os.path.split(output)[0]
+        out_folder = os.path.split(self.f_output)[0]
         json_filepath = self.config['json_file'] if json_folder else os.path.join(out_folder, self.config['json_file'])
         if self.config['to_json'] and self.config['overwrite_json']:
             self.dump_json(fname=json_filepath)
