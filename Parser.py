@@ -87,7 +87,8 @@ class Parser(object):
             else:
                 old = {}
             # slightly ugly, but turns objects into simple dictionary. Equivalent to dumping and reloading
-            new = json.loads(json.dumps(self.results, cls=StructEncoder))  
+#            new = json.loads(json.dumps(self.results, cls=StructEncoder))  
+            new = StructEncoder().default(self.results)
             if overwrite_vals:
                 old.update(new)
             else:
