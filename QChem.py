@@ -337,7 +337,7 @@ class Input(QCMethod):
                 else:
                     mols.append([splt[0]]+list(map(float, splt[1:])))
             n += 1
-        if type(mols[0][0]) == str:
+        if type(mols[0][0]) == str:  # 1 frag or "read"
             mols = [mols]
         if self.cfg['use_numpy']:
             mols = [np.array(mol, dtype="object") for mol in mols]

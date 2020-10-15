@@ -257,7 +257,7 @@ class Parser(object):
             self.split_data(thresh=thresh)
         json_folder = os.path.split(self.config['json_file'])[0]
         if os.path.split(large_fn)[0]:
-            self.confi["large_fn"] = os.path.split(large_fn)[1]
+            self.config["large_fn"] = os.path.split(large_fn)[1]
             self.logger.warning("\"large_fn\" must be a filename. Everything before your filename is being ignored and\
                                 large_fn is always placed in the same folder as \"json_file\"")
         out_folder = os.path.split(self.f_output)[0]
