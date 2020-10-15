@@ -2,11 +2,13 @@ import importlib as il
 import os.path
 import inspect
 import re
+import numpy as np
 import logging
 import json
 from .ParserData import Struct
 from .ParserData import ParseContainer
 from .ParserData import StructEncoder
+from .ParserData import Amplitudes, MolecularOrbitals
 from .QCBase import GenFormatter, VarNames as V
 
 class Parser(object):
@@ -15,8 +17,9 @@ class Parser(object):
 
     def __init__(self, output, *, software=None, to_console=True,
                  to_file=False, log_file="CCParser.log", to_json=False,
-                 json_file="CCParser.json", overwrite_json=True,
-                 overwrite_vals=True, use_numpy=True):#cf. PEP-3102
+                 json_file="CCParser.json", large_fn="matrices.npz",
+                 thresh=3, overwrite_file=True, overwrite_vals=True,
+                 use_numpy=True):#cf. PEP-3102
         """ Parser constructor.
 
         Parameters
@@ -46,7 +49,8 @@ class Parser(object):
         self.logger = logging.getLogger("CCParser")
         self.config = dict(to_console=to_console, to_file=to_file,
                            log_file=log_file, to_json=to_json,
-                           json_file=json_file, overwrite_json=overwrite_json,
+                           json_file=json_file, large_fn=large_fn,
+                           overwrite_file=overwrite_file, 
                            overwrite_vals=overwrite_vals, use_numpy=use_numpy)
         self.setupLogger()
         self.logger.warning("CCParser starts...")
@@ -80,31 +84,8 @@ class Parser(object):
             setattr(self.results, V.has_finished, container)
             self.logger.warning("Output indicates abnormal exit. Added "+
                                 "[results.has_finished] = False")
-        """
-        if json_file is path, json_filepath = json_file
-        if output is filename, json_filepath = json_file
-        if output is path (path/output.out), json_path is filename, saves in folder (path/jsfile.json)
-        """
-        json_folder = os.path.split(self.config['json_file'])[0]
-        out_folder = os.path.split(self.f_output)[0]
-        json_filepath = self.config['json_file'] if json_folder else os.path.join(out_folder, self.config['json_file'])
-        if self.config['to_json'] and self.config['overwrite_json']:
-            self.dump_json(fname=json_filepath)
-        elif self.config['to_json'] and not self.config['overwrite_json']:
-            if os.path.isfile(json_filepath):
-                with open(json_filepath,"r") as f:
-                    old = json.load(f)
-            else:
-                old = {}
-            new = StructEncoder().default(self.results)
-            if self.config['overwrite_vals']:
-                old.update(new)
-            else:
-                for k in new.keys():
-                    if k not in old.keys():
-                        old[k] = new[k]
-            with open(json_filepath,"w") as f:
-                json.dump(old, f)
+        if self.config["to_json"]:
+            self.dump_data(thresh=thresh, resplit=False)
         self.logger.warning("CCParser has finished.")
         self.loggerCleanUp()
 
@@ -221,7 +202,27 @@ class Parser(object):
             container = ParseContainer(0, False)
             setattr(self.results, V.has_finished, container)
             self.logger.warning("Output indicates abnormal exit.")
-
+    
+    def split_data(self, thresh=3):
+        self.large = []
+        self.small = []
+        for prop in self.results.__dict__.keys():
+            val0 = getattr(self.results, prop).data[0]
+            tp = type(val0)
+            if tp in [str, float, bool]:
+                self.small.append(prop)
+                continue
+            elif tp in [tuple, list, np.ndarray, np.matrix, dict, \
+                        MolecularOrbitals, Amplitudes]:
+                if maxlen(val0) > thresh:
+                    self.large.append(prop)
+                else:
+                    self.small.append(prop)
+                continue
+            else:  # unclassified
+                self.small.append(prop)
+                    
+            
     def dump_json(self, fname="CCParser.json"):
         """Dumps contens of the CCParser.results container to a JSON file.
 
@@ -233,7 +234,80 @@ class Parser(object):
         with open(fname, "w") as pdump:
             json.dump(self.results, pdump, cls=StructEncoder)
         self.logger.warning("Dumped CCParser.results to JSON file.")
-
+        
+    def dump_data(self, thresh=3, resplit=False):
+        """
+        Parameters
+        ----------
+        large_fn: str
+            filename for large properties
+        thresh: int
+            threshold for stuff to keep in simple json.
+            NB. 3 means any "A,x,y,z" is going into .npz
+        resplit: bool
+            whether to resplit the data. Use if thresh has changed
+            
+        Does
+        ----
+        Writes everything into .json and, if necessary, into .npz
+        .json contains "pointers" to values in .npz
+        """
+        large_fn = self.config["large_fn"]
+        if not hasattr(self, "large") or resplit:
+            self.split_data(thresh=thresh)
+        json_folder = os.path.split(self.config['json_file'])[0]
+        if os.path.split(large_fn)[0]:
+            self.confi["large_fn"] = os.path.split(large_fn)[1]
+            self.logger.warning("\"large_fn\" must be a filename. Everything before your filename is being ignored and\
+                                large_fn is always placed in the same folder as \"json_file\"")
+        out_folder = os.path.split(self.f_output)[0]
+        """
+        if json_file is path, json_filepath = json_file
+        if output is filename, json_filepath = json_file
+        if output is path (path/output.out), json_path is filename, saves in folder (path/jsfile.json)
+        """
+        json_filepath = self.config['json_file'] if json_folder else os.path.join(out_folder, self.config['json_file'])
+        large_filepath = os.path.join(os.path.split(json_filepath)[0], large_fn)
+        smalldict = { attr: [[large_fn, line]  for line in getattr(self.results,attr).lines] for attr in self.large}  # pointer
+        tricky_ones = ["mo_energies", "ampl"]
+        largedict = {attr: [i for i in getattr(self.results,attr).data] \
+                            if attr not in tricky_ones else np.array(getattr(self.results,attr).to_list())
+                            for attr in self.large }  # arrays
+        for s in self.small:
+            smalldict[s] = getattr(self.results, s).to_list()
+        self.smalldict = smalldict
+        if self.config['to_json'] and self.config['overwrite_file']:
+            with open(json_filepath,"w") as f:
+                json.dump(smalldict, f)
+            self.logger.warning("Dumped CCParser.results to JSON file.")
+            if largedict:
+                np.savez(large_filepath, **largedict)
+                self.logger.warning("Dumped large arrays from CCParser.results to .npz file.")
+        elif self.config['to_json'] and not self.config['overwrite_file']:
+            if os.path.isfile(json_filepath):
+                with open(json_filepath,"r") as f:
+                    old = json.load(f)
+            if os.path.isfile(large_filepath):
+                old_npz = dict(np.load(large_filepath))
+            else:
+                old, old_npz = {}, {}
+            if self.config['overwrite_vals']:
+                old.update(smalldict)
+                old_npz.update(largedict)
+            else:
+                for k in smalldict.keys():
+                    if k not in old.keys():
+                        old[k] = smalldict[k]
+                for k in largedict.keys():
+                    if k not in old_npz.keys():
+                        old_npz[k] = largedict[k]
+            with open(json_filepath,"w") as f:
+                json.dump(old, f)
+                self.logger.warning("Dumped CCParser.results to JSON file.")
+            if old_npz:
+                np.savez(large_filepath, **old_npz)
+                self.logger.warning("Dumped large arrays from CCParser.results to .npz file.")
+                
     def find_software(self):
         with open(self.f_output) as f:
             for n, line in enumerate(f):
@@ -257,6 +331,33 @@ class Parser(object):
                     self.software = "psi"
                     break
         self.logger.warning("Automatically determined software is {0}".format(self.software))
+
+def maxlen(obj):
+    """
+    Parameters
+    ----------
+    obj 
+        almost any object: int,float,bool,str, their numpy32/64 analogues,
+                           list,tuple,dict,np.array,np.matrix,
+                           ccp.Parserdata.Amplitudes, ccp.Parserdata.MolecularOrbitals
+   
+    Returns
+    -------
+    the maximum lenght of something within the tree of objects/attributes.
+    """
+    tp = type(obj)
+    foundamentals = [int, float, bool, str, np.str_, np.float32, np.float64, np.int32, np.int64, np.bool_]
+    if tp in foundamentals:
+        return 1
+    if tp in [dict, list, tuple, np.ndarray, np.matrix]:
+        items = list(obj.values()) if tp == dict else obj
+        if np.array([type(i) in foundamentals for i in items]).all():
+            return len(obj)
+        else:
+            return max(len(obj),max([maxlen(i) for i in items]))
+    elif tp in [MolecularOrbitals, Amplitudes]:
+        return max([maxlen(i) for i in obj.__dict__.values()])
+        
 
 def is_qchem(line):
     hooks = ["Welcome to Q-Chem",
