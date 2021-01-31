@@ -7,6 +7,17 @@ CCParser requires
 * Python modules `re`, `inspect`, `os` and `importlib`
 * optional, but recommended: `pandas`
 
+## Installation
+Until the parser is converted to a proper Python package, install the module by
+downloading the CCParser folder (not its contents) into a directory in your `$PYTHONPATH`.
+
+If `$PYTHONPATH` is not set on your machine, create a folder intended for custom Python packages
+and add it to the `$PYTHONPATH` in your `.bashrc` (or `.zshrc` or other).
+```bash
+cd ~; mkdir .my_python_packages
+echo 'PYTHONPATH=$PYTHONPATH:$HOME/.my_python_packages' >> .bashrc
+```
+
 ## Usage
 Create a CCParser object specifying the output and software:
 ```python
