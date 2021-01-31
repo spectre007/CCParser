@@ -6,7 +6,7 @@ class Struct(object):
     """ Struct-like container object """
     def __init__(self, **kwds): # keyword args define attribute names and values
         self.__dict__.update(**kwds)
-        
+
 class ParseContainer(object):
     """ Generic container object which keeps track of the parsed quantities.
     It allows to parse the same quantity several times.
@@ -16,12 +16,12 @@ class ParseContainer(object):
         self.data     = []
         self.lines    = []
         self.serializable = False
-        
+
     @classmethod
     def from_obj(cls, line, parsed_obj):
         """Alternative constructor. Initialize directly with line and parsed
            object.
-           
+
         Parameters
         ----------
         line : int
@@ -32,29 +32,29 @@ class ParseContainer(object):
         pc = cls()
         pc.add(line, parsed_obj)
         return pc
-    
+
     def add(self, hook_line, new_obj):
         #self.data[hook_line] = new_pvalue
         self.data.append(new_obj)
         self.lines.append(hook_line)
         self.nversion += 1
-    
+
     def get_first(self):
         idx = self.lines.index(min(self.lines))#not needed if assuming ordered parsing (line by line)
         #return self.data[0]
         return self.data[idx]
-    
+
     def get_last(self):
         idx = self.lines.index(max(self.lines))#not needed if assuming ordered parsing (line by line)
         # return self.data[-1]
         return self.data[idx]
-    
+
     def get_data(self):
         return self.data
-    
+
     def get_lines(self):
         return self.lines
-    
+
     def make_serializable(self):
         """Turn fancy data types into sth that json.dump can recognize. """
         try:
@@ -71,25 +71,25 @@ class ParseContainer(object):
             self.data = [obj.encode() for obj in self.data]
         # assume other datatypes are serializable
         self.serializable = True
-    
+
     def to_tuple(self):
         if self.serializable:
             return tuple(zip(self.data, self.lines))
         else:
             self.make_serializable()
             return tuple(zip(self.data, self.lines))
-    
+
     def to_list(self):
         if self.serializable:
             return list(zip(self.data, self.lines))
         else:
             self.make_serializable()
             return list(zip(self.data, self.lines))
-       
+
     def __len__(self):
         assert len(self.data) == len(self.lines)
         return len(self.data)
-    
+
     def __getitem__(self, idx):
         if isinstance(idx, slice):
             return self.data[idx.start : idx.stop : idx.step]
@@ -97,40 +97,40 @@ class ParseContainer(object):
             if idx >= len(self.data) or abs(idx) > len(self.data):
                 raise IndexError("ParseContainer: Index out of range")
             return self.data[idx]
-        
+
     def __setitem__(self, idx, value):
         """ Setter method which expects value tuple (line, parsed_obj) """
         self.lines[idx] = value[0]
         self.data[idx] = value[1]
-        
+
     def __delitem__(self, idx):
         self.data.remove(idx)
         self.lines.remove(idx)
-        
+
     def __iter__(self):
         return iter(self.data)
-        
+
 #    def __next__(self):
 #        if self.n <= self.nversion:
 #            return self.data[self.n]
 #        else:
 #            raise StopIteration
-    
+
     def __contains__(self, line):
         if type(line) == str:
             line = int(line)
         return True if line in self.lines else False
-    
+
     def __str__(self):
         s = "\n"
         s+= "Line" + 3*" " + "Parsed Value\n"
         for i in range(self.nversion):
             s+= str(self.lines[i]) + 3*" " + str(self.data[i]) + "\n"
         return s
-    
+
 class ParserDataError(Exception):
     """Raise for ParserData related errors. """
-    
+
 class StructEncoder(json.JSONEncoder):
     def default(self, struct):
         if isinstance(struct, Struct):
@@ -154,13 +154,15 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         else:
             super().default(self, obj)
-        
+
 class MolecularOrbitals(object):
     # TODO: change name? "OrbitalEnergies"
     # TODO: add symmetries
-    """ General molecular orbital class, which has more functionality than 
+    """ General molecular orbital class, which has more functionality than
         simple arrays.
     """
+    N_ORB_PER_LINE = 10
+
     def __init__(self, o, v):
         self.occ    = list(map(float, o))
         self.virt   = list(map(float, v))
@@ -169,7 +171,7 @@ class MolecularOrbitals(object):
         self.n_mo  = self.n_occ + self.n_virt
         self.homo   = max(self.occ ) if self.n_occ  > 0 else 0
         self.lumo   = min(self.virt) if self.n_virt > 0 else 0
-        
+
     @classmethod
     def from_dict(cls, d):
         try:
@@ -188,26 +190,26 @@ class MolecularOrbitals(object):
         o, dummy = zip(*t[:idx])
         v, dummy = zip(*t[idx:])
         return cls(o, v)
-    
+
     def __str__(self):
         n1 = [i for i in range(1, self.n_occ+1)]
         n2 = [i for i in range(self.n_occ +1, self.n_mo+1)]
         s = "\n"
-        for i in range(0, len(self.occ), 10):
-            s += 4*" " + " ".join("{:>8}".format(j) for j in n1[i:i+10])+"\n"
+        for i in range(0, len(self.occ), self.N_ORB_PER_LINE):
+            s += 4*" " + " ".join("{:>8}".format(j) for j in n1[i:i+self.N_ORB_PER_LINE])+"\n"
             if i == 0:
-                s += " occ: " +' '.join("{:8.3f}".format(j) for j in self.occ[i:i+10])+"\n"
+                s += " occ: " +' '.join("{:8.3f}".format(j) for j in self.occ[i:i+self.N_ORB_PER_LINE])+"\n"
             else:
-                s += 6*" "+' '.join("{:8.3f}".format(j) for j in self.occ[i:i+10])+"\n"
+                s += 6*" "+' '.join("{:8.3f}".format(j) for j in self.occ[i:i+self.N_ORB_PER_LINE])+"\n"
         s += 7*" "+88*"-"+"\n"
-        for i in range(0, len(self.virt), 10):
-            s += 4*" " + " ".join("{:>8}".format(j) for j in n2[i:i+10])+"\n"
+        for i in range(0, len(self.virt), self.N_ORB_PER_LINE):
+            s += 4*" " + " ".join("{:>8}".format(j) for j in n2[i:i+self.N_ORB_PER_LINE])+"\n"
             if i == 0:
-                s += " virt:" +' '.join("{:8.3f}".format(j) for j in self.virt[i:i+10])+"\n"
+                s += " virt:" +' '.join("{:8.3f}".format(j) for j in self.virt[i:i+self.N_ORB_PER_LINE])+"\n"
             else:
-                s += 6*" "+' '.join("{:8.3f}".format(j) for j in self.virt[i:i+10])+"\n"
+                s += 6*" "+' '.join("{:8.3f}".format(j) for j in self.virt[i:i+self.N_ORB_PER_LINE])+"\n"
         return s
-    
+
     def RVS(self, gap):
         """ Determine amount of virtual orbitals to freeze based on energy gap (in eV) """
         if gap <= 0:
@@ -221,14 +223,14 @@ class MolecularOrbitals(object):
             part_of_v = float(freeze)/float(self.n_virt)
             s = "Index: {0:3d}, Number of frozen virtuals: {1:3d}, ({2:.1%})".format(idx, freeze, part_of_v)
             print(s)
-            
+
     def to_dict(self):
         return {"occ" : self.occ, "virt" : self.virt}
-    
+
     def to_tuples(self):
         return list(zip(self.occ,  ["occ"  for i in range(self.n_occ )])) \
              + list(zip(self.virt, ["virt" for i in range(self.n_virt)]))
-    
+
     def encode(self, fmt=tuple):
         if fmt == tuple:
             return self.to_tuples()
@@ -236,7 +238,7 @@ class MolecularOrbitals(object):
             return self.to_dict()
         else:
             raise ValueError("Export format not recognized.")
-            
+
 class Amplitudes(object):
     """ General container for amplitudes of one state for easier access to and export of amplitude data """
     def __init__(self, occ, virt, v, factor=1.0):
@@ -246,7 +248,7 @@ class Amplitudes(object):
         self.factor = factor
         self.weights = list(map(lambda x: self.factor * x**2, self.v))
         self.print_thr = 0.05
-    
+
     def __str__(self):
         s = "Amplitudes: Weights > {0:.0%}\n".format(self.print_thr)
         for i in range(len(self.occ)):
@@ -259,7 +261,7 @@ class Amplitudes(object):
                             self.occ[i][0], self.occ[i][1], self.virt[i][0],
                             self.virt[i][1], 100*self.weights[i])
         return s
-        
+
     @classmethod
     def from_list(cls, allinone, factor=1.0):
         """ Alternative constructor which expects single list.
@@ -272,7 +274,7 @@ class Amplitudes(object):
             virt.append(transition[n_mo:-1])
             v.append(transition[-1])# index yields float
         return cls(occ, virt, v, factor)
-        
+
     def to_dataframe(self, thresh=0.05):
         """ Converts the amplitude data to handy pandas.DataFrame object """
         try:
@@ -291,7 +293,7 @@ class Amplitudes(object):
                         pd.DataFrame(virt, columns=idx_v),
                         pd.Series(self.weights, name="weight")], axis=1)
         return df[(df["weight"] > thresh)] # trim DataFrame based on awesome function
-    
+
     def to_list(self):
         """ Return single list of amplitude data in the format:
             [[occ_i, occ_j,..., virt_a, virt_b,..., ampl], ...]
@@ -300,7 +302,7 @@ class Amplitudes(object):
         for i, v in enumerate(self.v):
             ampl.append(self.occ[i] + self.virt[i] + [v])
         return ampl
-    
+
     def encode(self, fmt=list):
         if fmt == list:
             return self.to_list()
