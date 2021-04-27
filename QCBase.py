@@ -169,6 +169,7 @@ class VarNames(object):
     # almo_total      = "almo_tot"
     sapt0_total     = "sapt0_tot"
     sapt_components = "sapt_comp"
+    mbe_tot = "mbe_tot"
 
     # -- Input variables --
     params   = "input"

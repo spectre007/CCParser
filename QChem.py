@@ -1920,3 +1920,21 @@ class CoupledCluster(QCMethod):
         mLogger.info("Coupled Cluster total energy [a.u.]",
                 extra={"Parsed" : V.cc_energy})
         return float(data[i].split()[-1])
+
+
+class ManyBodyExpansion(QCMethod):
+    def __init__(self, config):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
+        self.hooks = {
+            "mbe_tot": r"TOTAL ENERGY up to (\d)-BODY\s+([-]?\d+\.\d+)",
+        }
+
+    @var_tag(V.mbe_tot)
+    def mbe_tot(self, i, data):
+        """ Parse total energy up to x-body interactions [Hartree]"""
+        match = re.search(self.hooks['mbe_tot'], data[i])
+        bod = match.group(1)
+        mLogger.info(f"total MBE energy up to {bod}-body [a.u.]",
+                extra={"Parsed" : V.mbe_tot})
+        return float(match.group(2))
