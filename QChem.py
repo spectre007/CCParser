@@ -1938,3 +1938,42 @@ class ManyBodyExpansion(QCMethod):
         mLogger.info(f"total MBE energy up to {bod}-body [a.u.]",
                 extra={"Parsed" : V.mbe_tot})
         return float(match.group(2))
+
+class LOBA(QCMethod):
+    """ Localized Orbital Bonding Analysis
+    """
+    def __init__(self, config):
+        super().__init__()# necessary for every derived class of QCMethod
+        self.cfg = config
+        self.hooks = {
+            "occupations": r"Occupation >\s+(\d+)%",
+        }
+
+    @var_tag(V.loba_occ)
+    def occupations(self, i, data):
+        """ Parse LOBA occupations"""
+        mLogger.info(f"LOBA occupations ",
+                extra={"Parsed" : V.loba_occ})
+        p1 = r"([A-Za-z]+[0-9]*)\s*:\s(\d+\.\d+)"
+        iorb, iocc = 0, 0
+        occupations = {}
+        while True:
+            # loop over orbitals
+            if not '---' in data[i+3+iorb]:
+                break
+            # loop over occupation lines
+            while '---' not in data[i+4+iorb+iocc]:
+                tmp_occ = re.findall(p1, data[i+4+iorb+iocc])
+                for label, occ in tmp_occ:
+                    if label in occupations:
+                        occupations[label].append(float(occ))
+                    else:
+                        occupations[label] = [float(occ)]
+                iocc += 1
+            # jump to next set of localized orbitals
+            iorb += 5 + iocc
+            # reset iocc counter
+            iocc = 0
+        return occupations
+
+

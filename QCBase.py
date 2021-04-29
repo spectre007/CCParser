@@ -151,6 +151,7 @@ class VarNames(object):
     trans_eh_sep_mom  = "trans_eh_sep_mom"
     trans_eh_cov      = "trans_eh_cov"
     trans_eh_corr     = "trans_eh_corr"
+    loba_occ          = "loba_occ"
 
     # -- Energy decomposition analysis --
     almo_frz_tot = "almo_frz_tot"
