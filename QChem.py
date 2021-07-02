@@ -1519,6 +1519,8 @@ class ALMO(QCMethod):
         self.hooks["ct_simple"]   = r"CHARGE TRANSFER\s+(-?\d+\.\d+)"
         self.hooks["tot_simple"]  = r"TOTAL\s+(-?\d+\.\d+)\s+\(.+\)"
         self.hooks["frag_energy"] = "Fragment Energies (Ha):"
+        self.hooks["ct_one_side"] = "Stabilization due to one-side CT:"
+        self.hooks["ct_one_side_tot"] = "Energy of the one-side CT state:"
 
     @var_tag(V.almo_frz_tot)
     def Escf_frz(self, i, data):
@@ -1738,6 +1740,20 @@ class ALMO(QCMethod):
             e_frag.append(cwline.split()[-1])
             k += 1
         return list(map(float, e_frag))
+    
+    @var_tag(V.almo_ct_one)
+    def ct_one_side(self, i, data):
+        """ Parse stabilization of one-side CT [kJ/mol] """
+        mLogger.info("ALMO-EDA one-side CT [kJ/mol]",
+                extra={"Parsed" : V.almo_ct_one})
+        return float(data[i].split()[-2])
+
+    @var_tag(V.almo_ct_one_tot)
+    def ct_one_side_tot(self, i, data):
+        """ Parse total energy of one-side CT state [Hartree] """
+        mLogger.info("ALMO-EDA total energy of one-side CT state [Hartree]",
+                extra={"Parsed" : V.almo_ct_one_tot})
+        return float(data[i].split()[-1])
 
 class RIMP2(QCMethod):
     def __init__(self, config):
