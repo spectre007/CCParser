@@ -281,7 +281,7 @@ def parse_converged_genscfman(i, data, offset=0):
             SCF_conv = match.group(1)
             break
         j += 1
-    return SCF_conv
+    return float(SCF_conv)
 
 ###############################################################################
 class Input(QCMethod):
