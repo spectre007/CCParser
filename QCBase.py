@@ -105,6 +105,8 @@ class VarNames(object):
     fde_int_Ts_nad_ref = "Vt_nad_ref"
     fde_int_xc_nad     = "Vxc_nad"
     fde_int_Ts_nad     = "Vt_nad"
+    fde_X_xc_nad     = "X_xc_nad"
+    fde_X_t_nad     = "X_t_nad"
     # electrostatic
     fde_J     = "J_int"
     fde_AnucB = "AnucB"#rhoA * vB
