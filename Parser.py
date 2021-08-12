@@ -271,7 +271,7 @@ class Parser(object):
         smalldict = { attr: [[large_fn, line]  for line in getattr(self.results,attr).lines] for attr in self.large}  # pointer
         tricky_ones = ["mo_energies", "ampl"]
         largedict = {attr: [i for i in getattr(self.results,attr).data] \
-                            if attr not in tricky_ones else np.array(getattr(self.results,attr).to_list())
+                            if attr not in tricky_ones else np.array(getattr(self.results,attr).to_list(), dtype="object")
                             for attr in self.large }  # arrays
         for s in self.small:
             smalldict[s] = getattr(self.results, s).to_list()
@@ -282,7 +282,8 @@ class Parser(object):
             self.logger.warning("Dumped CCParser.results to JSON file.")
             if largedict:
                 np.savez(large_filepath, **largedict)
-                self.logger.warning("Dumped large arrays from CCParser.results to .npz file.")
+                self.logger.warning("Dumped large arrays from CCParser.results to .npz file.\
+                                    \n NB: numpy Warning is unavoidable.")
         elif self.config['to_json'] and not self.config['overwrite_file']:
             if os.path.isfile(json_filepath):
                 with open(json_filepath,"r") as f:
