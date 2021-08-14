@@ -1733,13 +1733,16 @@ class ALMO(QCMethod):
                 extra={"Parsed" : V.almo_frg_ene})
         k = 0
         e_frag = []
+        re_ene = r"\d+\s*(?P<ene>[-]?\d+\.\d+)"
         while True:
             cwline = data[i+1+k]
             if "-----" in cwline:
                 break
-            e_frag.append(cwline.split()[-1])
+            match = re.search(re_ene, cwline)
+            if match:
+                e_frag.append(float(match.group("ene")))
             k += 1
-        return list(map(float, e_frag))
+        return e_frag
     
     @var_tag(V.almo_ct_one)
     def ct_one_side(self, i, data):
