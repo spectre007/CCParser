@@ -340,7 +340,8 @@ class General(QCMethod):
                 "mulliken": "Ground-State Mulliken Net Atomic Charges",
                 "chelpg": "Ground-State ChElPG Net Atomic Charges",
                 "has_finished": "Thank you very much for using Q-Chem.",
-                "basis_name": "Requested basis set is"}
+                "basis_name": "Requested basis set is",
+                "efield": "Applying Cartesian multipole field",}
 
     @var_tag(V.version)
     def version(self, i, data):
@@ -430,6 +431,24 @@ class General(QCMethod):
         """ Parse name of basis set. """
         mLogger.info("basis set name", extra={"Parsed": V.basis_name})
         return data[i].split()[-1]
+
+    @var_tag(V.efield)
+    def efield(self, i, data):
+        """ Parse electric field """
+        mLogger.info("electric field", extra={"Parsed": V.efield})
+        j = i+3
+        pattern = re.compile("\((\d+),(\d+),(\d+)\)\s+([-]?\d+\.\d+E[-]\d+)")
+        components = []
+        while True:
+            match = pattern.search(data[j])
+            if match:
+                components.append(list(map(int, match.groups()[:3]))+[float(match.groups()[3])])
+            else:
+                break
+            j += 1
+        return components
+
+
 
 
 class SCF(QCMethod):

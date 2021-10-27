@@ -71,6 +71,7 @@ class VarNames(object):
     basis_name   = "bas_name"
     state_label  = "state_label"
     version      = "version"
+    efield       = "efield"
 
     # -- Issues & Warnings --
     has_converged = "state_cnvgd"
