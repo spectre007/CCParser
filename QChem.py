@@ -169,7 +169,7 @@ def parse_AO_matrix(readlin, n, use_numpy=True):
     else:
         return matrix
 
-def parse_STS_table(i, data, cols=[0,1], fmt=[int, float]):
+def parse_STS_table(i, data, cols=[0,1], fmt=[int, float], use_numpy=True):
     """ Parse table in STSman format.
 
        Electron Dipole Moments of Singlet Excited State
@@ -223,21 +223,23 @@ def parse_STS_table(i, data, cols=[0,1], fmt=[int, float]):
         #     elif u == "eV":
         #         values[j][m] = values[j][m]*eV2Hartree
         j += 1
+    if use_numpy:
+        values = np.array(values)
     return values
 
-# def parse_inline_vec(line, asarray=True):
-#     """ Extracts a vector of the format
-#     '[ 1.000, 2.000, 3.000]' from the current line"""
-#     pattern = r"[+-]?\d+\.\d*"
-#     match = re.findall(pattern, line)
-#     if len(match) > 0:
-#         match = list(map(float, match))
-#         if asarray:
-#             return np.asarray(match)
-#         else:
-#             return match
+def parse_inline_vec(line, asarray=True):
+    """ Extracts a vector of the format
+    '[ 1.000, 2.000, 3.000]' from the current line"""
+    pattern = r"[+-]?\d+\.\d*"
+    match = re.findall(pattern, line)
+    if len(match) > 0:
+        match = list(map(float, match))
+        if asarray:
+            return np.asarray(match)
+        else:
+            return match
 
-def parse_libwfa_vec(hook_string, data, i):
+def parse_libwfa_vec(hook_string, data, i, use_numpy=True):
     """ Extract vector from libwfa block
     which ends with an empty line."""
     j = 1
@@ -250,6 +252,8 @@ def parse_libwfa_vec(hook_string, data, i):
             vec = extract_floats(data[i+j])
             break
         j += 1
+    if use_numpy:
+        vec = np.array(vec)
     return vec
 
 def parse_libwfa_float(hook_string, data, i):
@@ -290,41 +294,54 @@ class Input(QCMethod):
         super().__init__()# necessary for every derived class of QCMethod
         # hooks as {function_name : hook_string}
         self.cfg = config
-        self.hooks = {'molecule' : '$molecule',
+        self.hooks = {'elconf' : '$molecule',
+                      'frag_xyz': '$molecule'
         }
 
-
-    @var_tag(V.molecule)
-    def molecule(self, i, data):
+    @var_tag(V.elconf)
+    def elconf(self, i, data):
         """ Get molecular/fragment configuration """
-        mLogger.info("input molecule(s)", extra={"Parsed" : V.molecule})
-        mol, n = {}, 0
-        ifrag = 0
-        curr_mol = 'total'
-        mol = {'atoms' : [], 'xyz' : [], 'charge' : [], 'multiplicity' : []}
+        mLogger.info("input elconf(s)", extra={"Parsed" : V.elconf})
+        elconfs, n = [], 0
         while True:
             cwline = data[i+1+n]
-            if len(cwline.split()) == 2:#may be not strict enough
-                elconf = list(map(int, cwline.split()))
-                mol['charge'].append(elconf[0])
-                mol['multiplicity'].append(elconf[1])
+            splt = cwline.split()
+            if len(splt) == 2:#may be not strict enough
+                elconfs.append(tuple(map(int, splt)))
+            elif "$end" in cwline:
+                break
+            n += 1
+        return elconfs
+    
+    @var_tag(V.frag_xyz)
+    def frag_xyz(self, i, data):
+        """ Get molecular/fragment configuration """
+        mLogger.info("input molecule(s)", extra={"Parsed" : V.frag_xyz})
+        mols, ifrag, n = [], 0, 0
+        while True:
+            cwline = data[i+1+n]
+            splt = cwline.split()
+            if len(splt) == 2:#may be not strict enough
+                n +=1
+                continue
             elif "$end" in cwline:
                 break
             elif '--' in cwline:
                 ifrag += 1
-                mol['atoms'].append([])
-                mol['xyz'].append([])
+                mols.append([])
             elif "read" in cwline:
-                mol = 'read'
+                mols = 'read'
             else:
-                if ifrag == 0:
-                    mol['atoms'].append(cwline.split()[0])
-                    mol['xyz'].append(list(map(float, cwline.split()[1:])))
+                if ifrag:
+                    mols[ifrag-1].append([splt[0]]+list(map(float, splt[1:])))
                 else:
-                    mol['atoms'][ifrag-1].append(cwline.split()[0])
-                    mol['xyz'][ifrag-1].append(list(map(float, cwline.split()[1:])))
+                    mols.append([splt[0]]+list(map(float, splt[1:])))
             n += 1
-        return mol
+        if type(mols[0][0]) == str:  # 1 frag or "read"
+            mols = [mols]
+        if self.cfg['use_numpy']:
+            mols = [np.array(mol, dtype="object") for mol in mols]
+        return mols  
 
 class General(QCMethod):
     """Parse general information like basis set, number of atoms, etc. """
@@ -362,6 +379,9 @@ class General(QCMethod):
                 xyz_dat.append(data[i+3+n].split()[1:])
                 n += 1
         xyz_dat = [[x[0]]+list(map(float,x[1:])) for x in xyz_dat]
+        if self.cfg['use_numpy']:
+            xyz_dat = np.array(xyz_dat,dtype="object")
+#        print(20*":","\nthe other one")
         return xyz_dat
 
     @var_tag(V.n_occ)
@@ -401,6 +421,8 @@ class General(QCMethod):
         chg = [[x[0]]+[float(x[1])] for x in chg]
         mLogger.info("Ground-State Mulliken charges",
                      extra={"Parsed":V.mulliken})
+        if self.cfg["use_numpy"]:
+            chg = np.array(chg, dtype="object")
         return chg
 
     @var_tag(V.chelpg)
@@ -415,6 +437,8 @@ class General(QCMethod):
                 n += 1
         chg = [[x[0]]+[float(x[1])] for x in chg]
         mLogger.info("Ground-State ChElPG charges", extra={"Parsed":V.chelpg})
+        if self.cfg["use_numpy"]:
+            chg = np.array(chg, dtype="object")
         return chg
 
     @var_tag(V.has_finished)
@@ -470,7 +494,7 @@ class SCF(QCMethod):
         vrt_s = "".join(data[i+1+v_start:i+1+v_end])
         a_occ = re.findall(r"-?\d+\.\d+", occ_s, re.M)
         a_vrt = re.findall(r"-?\d+\.\d+", vrt_s, re.M)
-        mo_obj = MolecularOrbitals(a_occ, a_vrt)
+        mo_obj = MolecularOrbitals(a_occ, a_vrt)  
         mLogger.info("molecular orbital energies",
                      extra={"Parsed" : V.mo_energies})
         return mo_obj
@@ -671,14 +695,14 @@ class ADC(QCMethod):
         """ Parse mean position of detachment density [Ang] """
         mLogger.info("mean position of detachment density [Ang]",
                 extra={"Parsed": V.diff_detach_mean})
-        return parse_libwfa_vec("<r_h> [Ang]:", data, i)
+        return parse_libwfa_vec("<r_h> [Ang]:", data, i, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.diff_attach_mean)
     def diff_attach_mean(self, i, data):
         """ Parse mean position of attachment density [Ang] """
         mLogger.info("mean position of attachment density [Ang]",
                 extra={"Parsed": V.diff_attach_mean})
-        return parse_libwfa_vec("<r_e> [Ang]:", data, i)
+        return parse_libwfa_vec("<r_e> [Ang]:", data, i, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.diff_da_dist)
     def diff_da_dist(self, i, data):
@@ -735,6 +759,8 @@ class ADC(QCMethod):
                 vec = extract_floats(data[i+j+1])
                 break
             j += 1
+        if self.cfg['use_numpy']:
+            vec = np.array(vec)
         return vec
 
     @var_tag(V.mulliken)
@@ -750,6 +776,8 @@ class ADC(QCMethod):
         chg = [[x[0]]+[float(x[1])] for x in chg]
         mLogger.info("MP(x)/ADC(x) Mulliken charges",
                      extra={"Parsed":V.mulliken})
+        if self.cfg["use_numpy"]:
+            chg = np.array(chg, dtype="object")
         return chg
 
     @var_tag(V.trans_hole_mean)
@@ -757,14 +785,14 @@ class ADC(QCMethod):
         """ Parse mean position of hole [Ang] """
         mLogger.info("mean position of hole [Ang]",
                 extra={"Parsed": V.trans_hole_mean})
-        return parse_libwfa_vec("<r_h> [Ang]:", data, i)
+        return parse_libwfa_vec("<r_h> [Ang]:", data, i, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.trans_elec_mean)
     def trans_elec_mean(self, i, data):
         """ Parse mean position of electron [Ang] """
         mLogger.info("mean position of electron [Ang]",
                 extra={"Parsed": V.trans_elec_mean})
-        return parse_libwfa_vec("<r_e> [Ang]:", data, i)
+        return parse_libwfa_vec("<r_e> [Ang]:", data, i, use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.trans_eh_dist)
     def trans_eh_dist(self, i, data):
@@ -810,6 +838,8 @@ class ADC(QCMethod):
                 vec = extract_floats(data[i+j+1])
                 break
             j += 1
+        if self.cfg['use_numpy']:
+            vec = np.array(vec)
         return vec
 
     @var_tag(V.trans_elec_mom)
@@ -828,6 +858,8 @@ class ADC(QCMethod):
                 vec = extract_floats(data[i+j+1])
                 break
             j += 1
+        if self.cfg['use_numpy']:
+            vec = np.array(vec)
         return vec
 
     @var_tag(V.trans_eh_sep_mom)
@@ -847,6 +879,8 @@ class ADC(QCMethod):
                 vec = extract_floats(data[i+j+1])
                 break
             j += 1
+        if self.cfg['use_numpy']:
+            vec = np.array(vec)
         return vec
 
     @var_tag(V.trans_eh_cov)
@@ -1458,7 +1492,9 @@ class TDDFT(QCMethod):
         """ Parse dipole moments [a.u.] of singlet excited states"""
         mLogger.info("singlet ES dipole moment",
                 extra={"Parsed": V.sts_dip_mom})
-        return parse_STS_table(i, data, cols=[1,2,3], fmt=[float, float, float])
+        return parse_STS_table(i, data, cols=[1,2,3],
+                               fmt=[float, float, float],
+                               use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.sts_trans_dip)
     def trans_dip(self, i, data):
@@ -1466,14 +1502,17 @@ class TDDFT(QCMethod):
         mLogger.info("transition dipole moments [a.u.]",
                 extra={"Parsed":V.sts_trans_dip})
         return parse_STS_table(i, data, cols=[0,1,2,3,4],
-                fmt=[int, int, float, float, float])
+                fmt=[int, int, float, float, float],
+                use_numpy=self.cfg['use_numpy'])
 
     @var_tag(V.sts_coupling)
     def coupling(self, i, data):
         """ Parse coupling between states [eV]"""
         mLogger.info("coupling between states [eV]",
                 extra={"Parsed": V.sts_coupling})
-        return parse_STS_table(i, data, cols=[0,1,5], fmt=[int, int, float])
+        return parse_STS_table(i, data, cols=[0,1,5],
+                               fmt=[int, int, float],
+                               use_numpy=self.cfg['use_numpy'])
 
     # TODO: is this normal TDDFT output?
     @var_tag(V.sts_osc_str)
@@ -1481,7 +1520,9 @@ class TDDFT(QCMethod):
         """ Parse oscillator strenghts"""
         mLogger.info("transition moment strength [a.u.]",
                 extra={"Parsed": V.sts_osc_str})
-        return parse_STS_table(i, data, cols=[0,1,5], fmt=[int, int, float])
+        return parse_STS_table(i, data, cols=[0,1,5],
+                               fmt=[int, int, float],
+                               use_numpy=self.cfg['use_numpy'])
 
 class ALMO(QCMethod):
     """ Parse general ALMO output """
@@ -1847,6 +1888,8 @@ class GeometryOpt(QCMethod):
                 xyz.append(line.split()[1:])
             n +=1
         xyz = [[x[0]]+list(map(float,x[1:])) for x in xyz]
+        if self.cfg['use_numpy']:
+            xyz = np.array(xyz, dtype="object")
         return xyz
 
 class Frequencies(QCMethod):
@@ -1872,6 +1915,8 @@ class Frequencies(QCMethod):
             if "Frequency:" in line:
                 freq += extract_floats(line)
             n += 1
+        if self.cfg['use_numpy']:
+            freq = np.array(freq)
         return freq
 
     @var_tag(V.vib_intensity)
@@ -1888,6 +1933,8 @@ class Frequencies(QCMethod):
             if "IR Intens:" in line:
                 intensities += extract_floats(line)
             n += 1
+        if self.cfg['use_numpy']:
+            intensities = np.array(intensities)
         return intensities
 
 class CoupledCluster(QCMethod):

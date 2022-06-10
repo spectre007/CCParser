@@ -172,7 +172,8 @@ class VarNames(object):
 
     # -- Input variables --
     params   = "input"
-    molecule = "molecule"
+    frag_xyz = "frag_xyz"
+    elconf = "elconf"
 
 
 def var_tag(var_name):
